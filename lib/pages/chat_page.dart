@@ -1,115 +1,121 @@
 import 'package:flutter/material.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final String username;  // Recibe el username del otro usuario
+
+  // Constructor para recibir el username
+  const ChatPage({super.key, required this.username});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
+  TextEditingController messageController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xff703eff),
-      body: Container(
-        margin: EdgeInsets.only(top: 40.0),
-        child: Column(children: [
-    Padding(
-      padding: const EdgeInsets.only(left: 20.0),
-      child: Row(children: [
-        GestureDetector(
-          onTap: (){
-            Navigator.pop(context);
+      appBar: AppBar(
+        backgroundColor: const Color(0xff703eff),
+        title: Text(widget.username), // Muestra el username de la persona con la que chateas
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Vuelve a la página anterior
           },
-          child: Icon(Icons.arrow_back_ios_new_rounded,color: Colors.white,)),
-        SizedBox(width: MediaQuery.of(context).size.width/5,),
-        Text("ElSarabambiche", 
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontSize: 26.0, fontWeight:  FontWeight.bold)),
-                
-      ],),
-    ),
-      SizedBox(height: 20.0,),
-    Expanded(
-          child: Container(
-          padding: EdgeInsets.only(left:10.0),
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)), ),
-            
-        child: Column(children: [
-          SizedBox(height: 50.0,),
-          Row(children: [
-            Container(
-              padding: EdgeInsets.all(13),
-              decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30), bottomRight: Radius.circular(30)  )),
-        child: Text("Hola como estas mano :v?", 
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 20.0, fontWeight:  FontWeight.bold)
-                    ),
-
-                    )
-          ],),
-
-        SizedBox(height: 20.0,),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-            Container(
-              margin: EdgeInsets.only(right: 20.0),
-              padding: EdgeInsets.all(13),
-              decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30), bottomLeft: Radius.circular(30)  )),
-              child: Text(
-                    "ESTOY bien mano :D", 
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 20.0, fontWeight:  FontWeight.bold)
-                    ),
-
-                    )
-          ],),
-          SizedBox(
-            height: MediaQuery.of(context).size.height/1.6,
+        ),
+      ),
+      body: Column(
+        children: [
+          // Aquí iría la lista de mensajes, por ahora está vacío
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              color: const Color(0xFFececf8), // Color de fondo de los mensajes
+              child: ListView(), // Aquí se mostrarían los mensajes
+            ),
           ),
-          Container(
-            child: Row(children: [
-              Container(
-                padding: EdgeInsets.all(5),
-                decoration: BoxDecoration(color: Color(0xff703eff),borderRadius: BorderRadius.circular(60)
-                ),
-                child: Icon(
-                  Icons.mic,size: 35.0,
-                   color: Colors.white, ),
-              ),
-              SizedBox(width: 10.0,),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.only(left: 10.0),
-                  decoration: BoxDecoration(color: Color(0xFFececf8), borderRadius: BorderRadius.circular(10)),
-                  child: TextField(
 
-                    decoration: InputDecoration(border: InputBorder.none, 
-                    hintText: "Escribir un mensaje...", suffixIcon: Icon(Icons.attach_file)),
-                  )),
-              ),
-            SizedBox(width: 10.0,),
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xff703eff),
-                
-                  borderRadius: BorderRadius.circular(60)
+          // Barra de texto para escribir el mensaje
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                // Icono de micrófono dentro de un círculo con fondo, ahora clickeable
+                GestureDetector(
+                  onTap: () {
+                    // Lógica del micrófono (por ahora solo muestra un mensaje en la consola)
+                    print("Micrófono presionado");
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff703eff), // Fondo morado
+                      shape: BoxShape.circle, // Forma circular
+                    ),
+                    child: const Icon(
+                      Icons.mic,
+                      size: 28.0,
+                      color: Colors.white, // Color del ícono
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  Icons.send,
-                  size: 30.0,
-                   color: Colors.white, ),
-              ),
-                  SizedBox(width: 10.0,),
-            ],),
-          )
-        ],) ,))
-      ],
-      ),),
+                const SizedBox(width: 10.0),
+
+                // Contenedor para la barra de texto
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFececf8),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+
+                        Expanded(
+                          child: TextField(
+                            controller: messageController,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              hintText: "Escribe un mensaje...",
+                            ),
+                          ),
+                        ),
+                        // Botón de clip dentro del campo de texto
+                        GestureDetector(
+                          onTap: () {
+                            // Aquí se manejaría la acción para cargar imágenes
+                            print("Botón de cargar imagen presionado");
+                          },
+                          child: const Icon(
+                            Icons.attach_file,
+                            color: Color(0xff703eff),
+                          ),
+                        ),
+                        const SizedBox(width: 10.0), // Espacio entre el clip y el campo de texto
+
+                        // Campo de texto para escribir el mensaje
+                        
+                      ],
+                    ),
+                  ),
+                ),
+                // Icono de enviar mensaje
+                IconButton(
+                  onPressed: () {
+                    // Aquí irá la lógica para enviar el mensaje, por ahora no hace nada
+                    print("Mensaje enviado: ${messageController.text}");
+                    messageController.clear(); // Limpia el campo de texto
+                  },
+                  icon: const Icon(Icons.send, color: Color(0xff703eff)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

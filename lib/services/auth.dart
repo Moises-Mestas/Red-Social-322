@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_3/pages/home.dart';
 import 'package:flutter_application_3/services/database.dart';
 import 'package:flutter_application_3/services/shared_pref.dart';
 
@@ -53,6 +54,10 @@ class AuthMethods{
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: Colors.green,
           content: Text("Registro Exitoso", style: TextStyle(color: Colors.black, fontSize: 25, fontWeight: FontWeight.bold ))));
+        Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Home()),
+      );
       });
     }
   }
