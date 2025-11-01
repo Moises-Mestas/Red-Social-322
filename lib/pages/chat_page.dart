@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_3/services/chat_service.dart';
 
 class ChatPage extends StatefulWidget {
   final String username;  // Recibe el username del otro usuario
@@ -12,6 +14,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   TextEditingController messageController = TextEditingController();
+  final ChatService _chatService = ChatService(); // Instancia el ChatService
 
   @override
   Widget build(BuildContext context) {
@@ -30,10 +33,35 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           // Aquí iría la lista de mensajes, por ahora está vacío
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              color: const Color(0xFFececf8), // Color de fondo de los mensajes
-              child: ListView(), // Aquí se mostrarían los mensajes
+            child: StreamBuilder(
+              stream: _chatService.getMessages(widget.username), // Escucha los mensajes en tiempo real
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasData) {
+                  var messages = snapshot.data!.docs;
+                  return ListView.builder(
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      var message = messages[index];
+                      // Convertir timestamp a hora
+                      var timestamp = message['timestamp'] != null
+                          ? (message['timestamp'] as Timestamp).toDate().toLocal()
+                          : DateTime.now();
+                      var hour = "${timestamp.hour}:${timestamp.minute < 10 ? '0' : ''}${timestamp.minute}";
+
+                      return ListTile(
+                        title: Text(message['message']), // Solo muestra el mensaje
+                        subtitle: Text(hour), // Muestra la hora del mensaje
+                      );
+                    },
+                  );
+                } else {
+                  return const Center(child: Text("No messages yet."));
+                }
+              },
             ),
           ),
 
@@ -73,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                     child: Row(
                       children: [
-
+                        // Campo de texto para escribir el mensaje
                         Expanded(
                           child: TextField(
                             controller: messageController,
@@ -95,9 +123,6 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ),
                         const SizedBox(width: 10.0), // Espacio entre el clip y el campo de texto
-
-                        // Campo de texto para escribir el mensaje
-                        
                       ],
                     ),
                   ),
@@ -105,8 +130,8 @@ class _ChatPageState extends State<ChatPage> {
                 // Icono de enviar mensaje
                 IconButton(
                   onPressed: () {
-                    // Aquí irá la lógica para enviar el mensaje, por ahora no hace nada
-                    print("Mensaje enviado: ${messageController.text}");
+                    // Lógica para enviar el mensaje
+                    _chatService.sendMessage(widget.username, messageController.text);
                     messageController.clear(); // Limpia el campo de texto
                   },
                   icon: const Icon(Icons.send, color: Color(0xff703eff)),
