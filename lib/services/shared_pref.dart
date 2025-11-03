@@ -58,4 +58,16 @@ class SharedpreferencesHelper {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(userImageKey);
   }
+
+// Limpiar todos los datos del usuario al cerrar sesión
+  Future<void> clearUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(userIdKey);
+    await prefs.remove(userNameKey);
+    await prefs.remove(userEmailKey);
+    await prefs.remove(userImageKey);
+    await prefs.remove(userUserNameKey);
+  }
+
+
 }
