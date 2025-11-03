@@ -55,8 +55,15 @@ createChatRoom(String chatRoomId, Map<String, dynamic> chatRoomInfoMap) async {
     return await FirebaseFirestore.instance.collection("users").where("username", isEqualTo: username).get();
   }
 
-  Future<Stream<QuerySnapshot>> getChatRooms()async{
-    String? myUsername= await SharedpreferencesHelper().getUserName();
-    return await FirebaseFirestore.instance.collection("chatrooms").orderBy("time", descending: true).where("users", arrayContains: myUsername!).snapshots();
-  }
+Future<Stream<QuerySnapshot>> getChatRooms() async {
+  String? myUsername = await SharedpreferencesHelper().getUserName();
+
+  // Verifica que 'users' contenga al usuario actual (myUsername)
+  return FirebaseFirestore.instance
+    .collection("chatrooms")
+    .where("users", arrayContains: myUsername!)  // Verifica si el usuario está en la conversación
+    .orderBy("lastMessageSendTs", descending: true)  // Ordena por el último mensaje
+    .snapshots();
+}
+
 }
