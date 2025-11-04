@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/pages/chat_page.dart';
+import 'package:flutter_application_3/pages/grupos.dart';
 import 'package:flutter_application_3/pages/profile.dart';
 import 'package:flutter_application_3/services/database.dart';
 import 'package:flutter_application_3/services/shared_pref.dart';
@@ -200,6 +201,43 @@ Widget chatRoomList() {
                       ),
                     ),
                   ),
+
+// Botón de Grupos
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => GruposPage()), // Navega a la página de Grupos
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 10.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.group,
+                          color: Color.fromARGB(255, 79, 191, 219),
+                          size: 30.0,
+                        ),
+                      ),
+                    ),
+                  ),
+  
+
+
+
+
+
+
+
+
+
+
+
                 ],
               ),
             ),
