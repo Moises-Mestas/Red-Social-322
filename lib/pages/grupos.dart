@@ -17,6 +17,37 @@ class _GruposPageState extends State<GruposPage> {
   TextEditingController searchController = TextEditingController();
   Stream? groupsStream;
   File? _imageFile;
+  List<DocumentSnapshot> allGroups = [];  // Todos los grupos
+  List<DocumentSnapshot> filteredGroups = [];  // Grupos filtrados para búsqueda
+
+  @override
+  void initState() {
+    super.initState();
+    loadGroups();
+  }
+
+  loadGroups() async {
+    // Cargar todos los grupos
+    groupsStream = await DatabaseMethods().getGroups();
+    setState(() {});
+  }
+
+  // Función de búsqueda en tiempo real
+  searchGroups(String query) async {
+    List<DocumentSnapshot> searchResults = [];
+    if (query.isEmpty) {
+      searchResults = allGroups;
+    } else {
+      searchResults = allGroups.where((group) {
+        String groupName = group['name'].toString().toLowerCase();
+        return groupName.contains(query.toLowerCase());
+      }).toList();
+    }
+
+    setState(() {
+      filteredGroups = searchResults;
+    });
+  }
 
   // Método para seleccionar una imagen
   Future<void> _pickImage() async {
@@ -28,17 +59,6 @@ class _GruposPageState extends State<GruposPage> {
         _imageFile = File(pickedFile.path); // Guardamos la imagen seleccionada
       });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    loadGroups();
-  }
-
-  loadGroups() async {
-    groupsStream = await DatabaseMethods().getGroups();
-    setState(() {});
   }
 
   // Función para crear un nuevo grupo
@@ -108,17 +128,32 @@ class _GruposPageState extends State<GruposPage> {
       appBar: AppBar(title: const Text("Grupos")),
       body: Column(
         children: [
-          TextField(
-            controller: searchController,
-            decoration: const InputDecoration(hintText: 'Buscar grupo...'),
-            onChanged: (value) {
-              // Aquí puedes implementar la búsqueda de grupos
-            },
+          // Barra de búsqueda con botón de crear grupo separado
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (value) {
+                      searchGroups(value); // Llamamos a la función de búsqueda
+                    },
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar grupo...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10), // Espacio entre la barra de búsqueda y el botón
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: createGroup, // Llamamos a la función de crear grupo
+                ),
+              ],
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: createGroup,  // Llamamos a la función de crear grupo
-          ),
+          // Lista de grupos
           Expanded(
             child: StreamBuilder(
               stream: groupsStream,
@@ -131,24 +166,29 @@ class _GruposPageState extends State<GruposPage> {
                   return const Center(child: Text("No hay grupos disponibles"));
                 }
 
-                return ListView.builder(
-                  itemCount: snapshot.data.docs.length,
-                  itemBuilder: (context, index) {
-                    DocumentSnapshot ds = snapshot.data.docs[index];
-                    return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GroupChatPage(
-                            groupName: ds["name"],
-                            groupImageUrl: ds["imageUrl"],
-                            groupId: ds.id,
-                          ),
-                        ),
-                      );
-                    },
+                // Almacenar los grupos cuando se obtienen
+                if (allGroups.isEmpty) {
+                  allGroups = snapshot.data.docs;
+                  filteredGroups = allGroups;
+                }
 
+                return ListView.builder(
+                  itemCount: filteredGroups.length,
+                  itemBuilder: (context, index) {
+                    DocumentSnapshot ds = filteredGroups[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GroupChatPage(
+                              groupName: ds["name"],
+                              groupImageUrl: ds["imageUrl"],
+                              groupId: ds.id,
+                            ),
+                          ),
+                        );
+                      },
                       child: Material(
                         elevation: 3.0,
                         borderRadius: BorderRadius.circular(10),
@@ -166,7 +206,7 @@ class _GruposPageState extends State<GruposPage> {
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(60),
                                       child: Image.network(
-                                        ds["imageUrl"], // Aquí cargamos la imagen del grupo
+                                        ds["imageUrl"],
                                         height: 70,
                                         width: 70,
                                         fit: BoxFit.cover,

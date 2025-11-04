@@ -130,6 +130,13 @@ class DatabaseMethods {
         .snapshots();
   }
 
+
+
+
+
+
+
+
   // Crear un nuevo grupo y agregar el usuario a la lista de miembros
   Future createGroupWithMembers(Map<String, dynamic> groupInfoMap) async {
     try {
