@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_3/pages/groupchat_page.dart';
 import 'package:image_picker/image_picker.dart'; // Para cargar imágenes
 import 'dart:io';
 import 'package:flutter_application_3/services/database.dart';
@@ -135,9 +136,19 @@ class _GruposPageState extends State<GruposPage> {
                   itemBuilder: (context, index) {
                     DocumentSnapshot ds = snapshot.data.docs[index];
                     return GestureDetector(
-                      onTap: () {
-                        // Navegar a la página del grupo cuando se hace tap en el grupo
-                      },
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GroupChatPage(
+                            groupName: ds["name"],
+                            groupImageUrl: ds["imageUrl"],
+                            groupId: ds.id,
+                          ),
+                        ),
+                      );
+                    },
+
                       child: Material(
                         elevation: 3.0,
                         borderRadius: BorderRadius.circular(10),
