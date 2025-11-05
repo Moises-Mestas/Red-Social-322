@@ -70,7 +70,18 @@ class _GroupChatPageState extends State<GroupChatPage> {
       await DatabaseMethods().updateLastMessageSend(widget.groupId, lastMessageInfoMap);
     }
   }
-
+  // Función para unirse al grupo
+  joinGroup() async {
+    bool isUserAlreadyInGroup = await checkIfUserIsInGroup();
+    
+    if (!isUserAlreadyInGroup) {
+      // Si el usuario no está en el grupo, lo agregamos
+      await DatabaseMethods().addUserToGroup(widget.groupId);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Te has unido al grupo')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ya estás en este grupo')));
+    }
+  }
   // Función para adjuntar imagen
   getImage() async {
     final XFile? image = await ImagePicker().pickImage(
@@ -83,7 +94,16 @@ class _GroupChatPageState extends State<GroupChatPage> {
     });
     await _uploadImage();
   }
-
+ // Verificar si el usuario ya está en el grupo
+  Future<bool> checkIfUserIsInGroup() async {
+    DocumentSnapshot groupDoc = await FirebaseFirestore.instance
+        .collection("chatrooms")
+        .doc(widget.groupId)
+        .get();
+    
+    List<dynamic> users = groupDoc['users'];
+    return users.contains(myUsername);
+  }
   // Función para subir la imagen a Firebase
   Future<void> _uploadImage() async {
     if (selectedImage == null) return;
@@ -186,8 +206,35 @@ class _GroupChatPageState extends State<GroupChatPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
-            onPressed: () {
-              // Logic for leaving the group (if necessary)
+            onPressed: () async {
+              // Mostrar el diálogo de confirmación para unirse al grupo
+              bool? joinGroupResponse = await showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text('¿Unirte al grupo?'),
+                    content: const Text('¿Quieres unirte a este grupo?'),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context, false); // Cerrar el diálogo con No
+                        },
+                        child: const Text('No'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context, true); // Cerrar el diálogo con Sí
+                        },
+                        child: const Text('Sí'),
+                      ),
+                    ],
+                  );
+                }
+              );
+
+              if (joinGroupResponse == true) {
+                joinGroup(); // Unirse al grupo
+              }
             },
           ),
         ],

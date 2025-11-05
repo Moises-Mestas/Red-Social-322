@@ -120,7 +120,7 @@ class DatabaseMethods {
   }
 
   // Obtener todos los grupos en los que está involucrado el usuario
-  Future<Stream<QuerySnapshot>> getGroups() async {
+  Future<Stream<QuerySnapshot>> getGroups(String s) async {
     String? myUsername = await SharedpreferencesHelper().getUserName();
     return FirebaseFirestore.instance
         .collection("chatrooms")
@@ -131,10 +131,36 @@ class DatabaseMethods {
   }
 
 
+Future addUserToGroup(String groupId) async {
+  String? myUsername = await SharedpreferencesHelper().getUserName();
+  DocumentSnapshot groupDoc = await FirebaseFirestore.instance
+      .collection("chatrooms")
+      .doc(groupId)
+      .get();
+
+  if (groupDoc.exists) {
+    // Asegúrate de que el usuario no esté ya en el grupo
+    List<dynamic> users = List.from(groupDoc['users']);
+    if (!users.contains(myUsername)) {
+      users.add(myUsername);  // Agregar el usuario
+      await FirebaseFirestore.instance
+          .collection("chatrooms")
+          .doc(groupId)
+          .update({'users': users});
+    }
+  }
+}
 
 
 
 
+Future<Stream<QuerySnapshot>> getAllGroups() async {
+  return FirebaseFirestore.instance
+      .collection("chatrooms")
+      .where("isGroup", isEqualTo: true) // Solo los grupos
+      .orderBy("lastMessageSendTs", descending: true) // Ordenar por último mensaje
+      .snapshots();
+}
 
 
   // Crear un nuevo grupo y agregar el usuario a la lista de miembros
@@ -154,4 +180,47 @@ class DatabaseMethods {
       return null;
     }
   }
+  Future addMessage2(String chatRoomId, String messageId, Map<String, dynamic> messageInfoMap) async {
+  String? myUsername = await SharedpreferencesHelper().getUserName();
+
+  // Verificar si el usuario ya está en el grupo
+  DocumentSnapshot groupDoc = await FirebaseFirestore.instance
+      .collection("chatrooms")
+      .doc(chatRoomId)
+      .get();
+
+  List<dynamic> users = groupDoc['users'];
+
+  // Si el usuario no está en el grupo, agregarlo
+  if (!users.contains(myUsername)) {
+    users.add(myUsername);  // Agregar el nombre de usuario al campo 'users'
+    await FirebaseFirestore.instance
+        .collection("chatrooms")
+        .doc(chatRoomId)
+        .update({'users': users});  // Actualizar el grupo con el nuevo usuario
+  }
+
+  // Agregar el mensaje al grupo
+  return await FirebaseFirestore.instance
+      .collection("chatrooms")
+      .doc(chatRoomId)
+      .collection("chats")
+      .doc(messageId)
+      .set(messageInfoMap);
+}
+
+Future<void> sendMessage(String chatRoomId, String message) async {
+  String messageId = FirebaseFirestore.instance.collection("chatrooms").doc(chatRoomId).collection("chats").doc().id;
+
+  Map<String, dynamic> messageInfoMap = {
+    "message": message,
+    "time": DateTime.now(),
+    "sendBy": await SharedpreferencesHelper().getUserName(),
+    "messageType": "text", // O cualquier otro tipo de mensaje
+  };
+
+  // Usamos addMessage2 para asegurar que el usuario se agregue al grupo cuando envíe un mensaje
+  await DatabaseMethods().addMessage2(chatRoomId, messageId, messageInfoMap);
+}
+
 }

@@ -1,36 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/pages/groupchat_page.dart';
-import 'package:flutter_application_3/pages/grupos_propios.dart';
+import 'package:flutter_application_3/pages/grupos.dart';
 import 'package:image_picker/image_picker.dart'; // Para cargar imágenes
 import 'dart:io';
 import 'package:flutter_application_3/services/database.dart';
 import 'package:flutter_application_3/services/shared_pref.dart';
 
-class GruposPage extends StatefulWidget {
-  const GruposPage({super.key});
+class GruposPropios extends StatefulWidget {
+  const GruposPropios({super.key});
 
   @override
-  State<GruposPage> createState() => _GruposPageState();
+  State<GruposPropios> createState() => _GruposPropiosState();
 }
 
-class _GruposPageState extends State<GruposPage> {
+class _GruposPropiosState extends State<GruposPropios> {
   TextEditingController searchController = TextEditingController();
-  Stream? userGroupsStream; // Para mostrar solo los grupos donde el usuario está
+  Stream? groupsStream;
   File? _imageFile;
-  List<DocumentSnapshot> userGroups = []; // Grupos en los que el usuario está
-  List<DocumentSnapshot> filteredGroups = []; // Grupos filtrados para búsqueda
+  List<DocumentSnapshot> allGroups = [];  // Todos los grupos
+  List<DocumentSnapshot> filteredGroups = [];  // Grupos filtrados para búsqueda
 
   @override
   void initState() {
     super.initState();
-    loadUserGroups();
+    loadGroups();
   }
 
-  // Cargar solo los grupos a los que el usuario pertenece
-  loadUserGroups() async {
-    String? myUsername = await SharedpreferencesHelper().getUserName();
-    userGroupsStream = await DatabaseMethods().getGroups(myUsername!);  // Método que obtiene solo los grupos donde el usuario está
+  // Cargar todos los grupos (no solo los que el usuario tiene)
+  loadGroups() async {
+    groupsStream = await DatabaseMethods().getAllGroups();  // Usar getAllGroups() para obtener todos los grupos
     setState(() {});
   }
 
@@ -38,9 +37,9 @@ class _GruposPageState extends State<GruposPage> {
   searchGroups(String query) async {
     List<DocumentSnapshot> searchResults = [];
     if (query.isEmpty) {
-      searchResults = userGroups;  // Si no hay búsqueda, muestra los grupos en los que el usuario está
+      searchResults = allGroups;  // Si no hay búsqueda, muestra todos los grupos
     } else {
-      searchResults = userGroups.where((group) {
+      searchResults = allGroups.where((group) {
         String groupName = group['name'].toString().toLowerCase();
         return groupName.contains(query.toLowerCase());  // Filtra por el nombre del grupo
       }).toList();
@@ -197,24 +196,23 @@ class _GruposPageState extends State<GruposPage> {
               ],
             ),
           ),
-          
-          // Lista de grupos (solo los grupos a los que el usuario está dentro)
+          // Lista de grupos
           Expanded(
             child: StreamBuilder(
-              stream: userGroupsStream,
+              stream: groupsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
-                  return const Center(child: Text("No estás en ningún grupo"));
+                  return const Center(child: Text("No hay grupos disponibles"));
                 }
 
                 // Almacenar los grupos cuando se obtienen
-                if (userGroups.isEmpty) {
-                  userGroups = snapshot.data.docs;
-                  filteredGroups = userGroups;
+                if (allGroups.isEmpty) {
+                  allGroups = snapshot.data.docs;
+                  filteredGroups = allGroups;
                 }
 
                 return ListView.builder(
@@ -266,6 +264,7 @@ class _GruposPageState extends State<GruposPage> {
                                       ),
                                     ),
                               const SizedBox(width: 20.0),
+                              // Muestra el nombre del grupo y el último mensaje
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -288,6 +287,7 @@ class _GruposPageState extends State<GruposPage> {
                                 ],
                               ),
                               const Spacer(),
+                              // Muestra la hora del último mensaje
                               Text(
                                 ds["lastMessageSendTs"].toString(),
                                 textAlign: TextAlign.center,
