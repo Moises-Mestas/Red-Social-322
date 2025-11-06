@@ -1,8 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_3/pages/home.dart';
-import 'package:flutter_application_3/pages/onboarding.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart';
+import 'package:flutter_application_3/views/pages/onboarding_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,21 +16,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ChatUp',
+      title: 'AquiNomas',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const AuthGate(), // <--- Punto único de entrada
+      home: const AuthGate(),
       routes: {
-        '/home': (_) => const Home(),
-        '/onboarding': (_) => const Onboarding(),
+        '/home': (_) => const HomePage(),
+        '/onboarding': (_) => const OnboardingPage(),
       },
     );
   }
 }
 
-/// Puerta de autenticación: si hay sesión -> Home; si no -> Onboarding
+/// Puerta de autenticación: si hay sesión -> HomePage; si no -> OnboardingPage
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -38,16 +39,16 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snap.hasData) {
-          return const Home();        // Ya autenticado
+        if (snapshot.hasData && snapshot.data != null) {
+          return const HomePage(); // Ya autenticado
         }
-        return const Onboarding();     // No autenticado
+        return const OnboardingPage(); // No autenticado
       },
     );
   }
