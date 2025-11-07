@@ -92,22 +92,39 @@ class _GruposPageState extends State<GruposPage> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              if (groupName != null && groupName!.isNotEmpty) {
-                final groupId = await _groupController.createGroup(
-                  groupName: groupName!,
-                  imageFile: _imageFile,
-                );
+                // CÓDIGO CORREGIDO
+                onPressed: () async {
+                  // 1. Guardamos los objetos de contexto ANTES del 'await'
+                  final navigator = Navigator.of(context);
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-                if (groupId != null && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Grupo creado con id: $groupId')),
-                  );
-                  _loadUserGroups(); // Recargar la lista
-                }
-              }
-            },
+                  // 2. Comprobamos si el widget sigue "montado" (vivo)
+                  if (!mounted) return; 
+
+                  if (groupName != null && groupName!.isNotEmpty) {
+
+                    // 3. Cerramos el diálogo
+                    navigator.pop();
+
+                    // 4. Hacemos la llamada asíncrona
+                    final groupId = await _groupController.createGroup(
+                      groupName: groupName!,
+                      imageFile: _imageFile,
+                    );
+
+                    if (groupId != null) {
+                      // 5. Usamos el 'scaffoldMessenger' guardado (¡seguro!)
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(content: Text('Grupo creado con id: $groupId')),
+                      );
+
+                      // 6. Volvemos a comprobar si el widget sigue vivo antes de recargar
+                      if (mounted) {
+                        _loadUserGroups();
+                      }
+                    }
+                  }
+                },
             child: const Text('Crear'),
           ),
         ],

@@ -69,21 +69,20 @@ class DatabaseService {
     }
   }
 
-  // Group methods
-  Future<String?> createGroup(Map<String, dynamic> groupInfoMap) async {
+// CÓDIGO CORREGIDO
+Future<String?> createGroup(Map<String, dynamic> groupInfoMap) async {
     try {
       String groupId = 'grupo_${DateTime.now().millisecondsSinceEpoch}';
 
-      if (groupInfoMap["imageUrl"] != null && groupInfoMap["imageUrl"] != "") {
-        String? imageUrl = await uploadImage(File(groupInfoMap["imageUrl"]));
-        groupInfoMap["imageUrl"] = imageUrl ?? "";
-      }
+    // Simplemente nos aseguramos de que tenga el flag de grupo
+      groupInfoMap["isGroup"] = true; 
 
-      groupInfoMap["isGroup"] = true;
-      await _firestore
+       // Y guardamos el mapa que ya viene listo desde el controller
+    await _firestore
           .collection(AppConstants.chatroomsCollection)
           .doc(groupId)
           .set(groupInfoMap);
+
       return groupId;
     } catch (e) {
       print("Error creando grupo: $e");
