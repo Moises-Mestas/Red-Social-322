@@ -20,6 +20,13 @@ class SharedPrefService {
     return true;
   }
 
+  // Agrega este método para guardar solo la imagen
+  Future<bool> saveUserImage(String imageUrl) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.userImageKey, imageUrl);
+    return true;
+  }
+
   Future<String?> getUserId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(AppConstants.userIdKey);
