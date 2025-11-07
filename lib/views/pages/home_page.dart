@@ -7,6 +7,8 @@ import 'package:flutter_application_3/views/pages/chat_page.dart';
 import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/principal_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
+import 'package:flutter_application_3/views/pages/tablero.dart';
+import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:flutter_application_3/views/widgets/chat_room_list_tile.dart';
 
 class HomePage extends StatefulWidget {
@@ -28,7 +30,7 @@ class _HomePageState extends State<HomePage> {
   bool _search = false;
   List<Map<String, dynamic>> _tempSearchStore = [];
   String _lastSearchKey = "";
-  
+
   // Índice para controlar qué botón de la barra inferior está activo
   int _selectedIndex = 0;
 
@@ -96,22 +98,24 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Método para manejar el tap en la barra inferior
-// Método para manejar el tap en la barra inferior
   void _onItemTapped(int index) {
-    // Primero, actualiza el estado para que el ícono se vea seleccionado
     setState(() {
       _selectedIndex = index;
     });
 
-    // Añade la lógica de navegación
     if (index == 0) {
-      // Si el índice es 0 (el botón 'Inicio'), navega a PrincipalPage
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const PrincipalPage()),
       );
-    } 
+    }
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const TableroPage()),
+      );
+    }
+
     // Aquí podrías añadir 'else if' para los otros botones (Mapa, Notificaciones, etc.)
     // else if (index == 1) {
     //   Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaPage()));
@@ -149,26 +153,21 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // En el método _buildResultCard del HomePage, reemplaza el onTap:
   Widget _buildResultCard(Map<String, dynamic> data, BuildContext context) {
     return GestureDetector(
-      onTap: () async {
+      onTap: () {
         setState(() {
           _search = false;
           _searchController.clear();
         });
 
-        final chatRoomId = await _chatController.getOrCreateChatRoom(
-          data["username"],
-        );
-
+        // Navegar al perfil del usuario usando solo el username
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChatPage(
-              name: data["Name"],
-              profileurl: data["Image"],
-              username: data["username"],
-            ),
+            builder: (context) =>
+                UserProfilePage(username: data["username"] ?? ""),
           ),
         );
       },
@@ -418,9 +417,12 @@ class _HomePageState extends State<HomePage> {
       // BARRA DE NAVEGACIÓN INFERIOR AGREGADA
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color.fromARGB(255, 79, 191, 219),
-        type: BottomNavigationBarType.fixed, // Necesario para más de 3 items con color fijo
+        type: BottomNavigationBarType
+            .fixed, // Necesario para más de 3 items con color fijo
         selectedItemColor: Colors.white, // Color del ícono activo
-        unselectedItemColor: Colors.white.withOpacity(0.5), // Color de íconos inactivos
+        unselectedItemColor: Colors.white.withOpacity(
+          0.5,
+        ), // Color de íconos inactivos
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         showSelectedLabels: false, // Ocultar etiquetas para un look más limpio
@@ -431,18 +433,12 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.home_filled),
             label: 'Inicio',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Mapa',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Notificaciones',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Ajustes',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Ajustes'),
         ],
       ),
     );
