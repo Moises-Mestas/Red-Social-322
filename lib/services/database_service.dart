@@ -248,6 +248,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:flutter_application_3/core/constants/app_constants.dart';
 
+import '../core/constants/app_constants.dart';
+
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -527,5 +529,47 @@ class DatabaseService {
         "likes": FieldValue.arrayUnion([userId]),
       });
     }
+  }
+  // ==============datos=======================//
+
+  Future<void> addDatosCollection(
+    String datosId,
+    Map<String, dynamic> datosData,
+  ) async {
+    await _firestore
+        .collection(AppConstants.datosCollection)
+        .doc(datosId)
+        .set(datosData);
+  }
+
+  Future<DocumentSnapshot> getDatosCollection(String userId) async {
+    return await _firestore
+        .collection(AppConstants.datosCollection)
+        .doc(userId)
+        .get();
+  }
+
+  Future<void> updateDatosPersonales(
+    String userId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    await _firestore
+        .collection(AppConstants.datosCollection)
+        .doc(userId)
+        .update(updatedData);
+  }
+
+  Stream<DocumentSnapshot> listenToDatosPersonales(String userId) {
+    return _firestore
+        .collection(AppConstants.datosCollection)
+        .doc(userId)
+        .snapshots();
+  }
+
+  Future<void> deleteDatosPersonales(String userId) async {
+    await _firestore
+        .collection(AppConstants.datosCollection)
+        .doc(userId)
+        .delete();
   }
 }

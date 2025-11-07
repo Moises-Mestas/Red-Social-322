@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_3/controllers/auth_controller.dart';
 import 'package:flutter_application_3/controllers/profile_controller.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
+import 'package:flutter_application_3/views/pages/login.dart';
 import 'package:flutter_application_3/views/pages/onboarding_page.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -366,11 +367,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       GestureDetector(
                         onTap: () {
                           _authController.signOut(context);
-                          Navigator.pushReplacement(
+                          Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const OnboardingPage(),
+                              builder: (context) => const LoginPage(),
                             ),
+                            (route) => false,
                           );
                         },
                         child: Container(

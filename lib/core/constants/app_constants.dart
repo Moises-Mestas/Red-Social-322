@@ -17,5 +17,15 @@ class AppConstants {
 
   static const String postsCollection = "posts";
   static const String commentsSubcollection = "comments";
-  static const String postImagesPath = "post_images"; // Para guardar imágenes de posts
+  static const String postImagesPath = "post_images";
+
+  static const String datosCollection = "datos_personales";
+  static const String ciudad = "ciudad";
+  static const String descripcion = "descripcion";
+  static const String fecha_nacimiento = "fecha de nacimiento";
+  static const String genero = "genero";
+  static const String telefono = "telefono";
+  static const String estudios = "estudios";
+  static const String ocupacion = "ocupacion";
+  static const String estado_relacion = "estado de relacion";
 }

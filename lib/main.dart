@@ -1,8 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_3/views/pages/home_page.dart';
-import 'package:flutter_application_3/views/pages/onboarding_page.dart';
+import './views/pages/home_page.dart';
+import './views/pages/onboarding_page.dart';
+import 'views/pages/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
       home: const AuthGate(),
       routes: {
         '/home': (_) => const HomePage(),
-        '/onboarding': (_) => const OnboardingPage(),
+        '/login': (_) => const LoginPage(),
       },
     );
   }
