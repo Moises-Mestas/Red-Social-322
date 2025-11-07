@@ -28,4 +28,8 @@ class AppConstants {
   static const String estudios = "estudios";
   static const String ocupacion = "ocupacion";
   static const String estado_relacion = "estado de relacion";
+
+  static const String followersCollection = "followers";
+  static const String followingCollection = "following";
+  static const String notificationsCollection = "notifications";
 }

@@ -8,6 +8,7 @@ import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/principal_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
 import 'package:flutter_application_3/views/pages/tablero.dart';
+import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:flutter_application_3/views/widgets/chat_room_list_tile.dart';
 
 class HomePage extends StatefulWidget {
@@ -114,6 +115,7 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(builder: (context) => const TableroPage()),
       );
     }
+
     // Aquí podrías añadir 'else if' para los otros botones (Mapa, Notificaciones, etc.)
     // else if (index == 1) {
     //   Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaPage()));
@@ -151,26 +153,21 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // En el método _buildResultCard del HomePage, reemplaza el onTap:
   Widget _buildResultCard(Map<String, dynamic> data, BuildContext context) {
     return GestureDetector(
-      onTap: () async {
+      onTap: () {
         setState(() {
           _search = false;
           _searchController.clear();
         });
 
-        final chatRoomId = await _chatController.getOrCreateChatRoom(
-          data["username"],
-        );
-
+        // Navegar al perfil del usuario usando solo el username
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChatPage(
-              name: data["Name"],
-              profileurl: data["Image"],
-              username: data["username"],
-            ),
+            builder: (context) =>
+                UserProfilePage(username: data["username"] ?? ""),
           ),
         );
       },

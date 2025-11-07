@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
 import 'package:flutter_application_3/services/database_service.dart';
 import 'package:flutter_application_3/core/constants/app_constants.dart';
+import 'package:flutter_application_3/views/pages/edit_profile_page.dart';
 
 class TableroPage extends StatefulWidget {
   const TableroPage({super.key});
@@ -325,23 +326,39 @@ class _TableroPageState extends State<TableroPage> {
     );
   }
 
+  // En el método _buildActionButtons del TableroPage, modifica el botón Editar Perfil:
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // BOTÓN EDITAR PERFIL
+          // BOTÓN EDITAR PERFIL - AHORA NAVEGA A EDIT PROFILE
           Expanded(
-            child: Container(
-              height: 36,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text(
-                  'Editar perfil',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            child: GestureDetector(
+              onTap: () {
+                // Navegar a la pantalla de edición de perfil
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProfilePage(
+                      userData: _datosPersonales,
+                      onProfileUpdated:
+                          _loadUserData, // Recargar datos después de editar
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Editar perfil',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
                 ),
               ),
             ),

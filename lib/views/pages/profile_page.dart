@@ -44,7 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _loadUserData(Map<String, dynamic> userData) {
     _nameController.text = userData['displayName'] ?? '';
     _usernameController.text = userData['username'] ?? '';
-    _emailController.text = userData['email'] ?? '';
+    _emailController.text = userData['Email'] ?? '';
   }
 
   Future<void> _updateProfile() async {
@@ -458,7 +458,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return {
       'displayName': userData['displayName'],
-      'email': userData['email'],
+      'email': userData['Email'],
       'username': userData['username'],
       'imageUrl': userData['imageUrl'],
     };
