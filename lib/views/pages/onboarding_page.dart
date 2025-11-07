@@ -19,7 +19,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _currentPage = 0;
   bool _usandoUbicacionActual = false;
 
-  // Controladores
   final TextEditingController _ciudadController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _fechaNacimientoController =
@@ -27,12 +26,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _ocupacionController = TextEditingController();
 
-  // Dropdown values
   String? _generoSeleccionado;
   String? _estudiosSeleccionado;
   String? _estadoRelacionSeleccionado;
 
-  // Listas para dropdowns
   final List<String> _generos = [
     'Masculino',
     'Femenino',
@@ -58,7 +55,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     'Prefiero no decir',
   ];
 
-  // Lista de ciudades populares de Perú
   final List<String> _ciudadesPopulares = [
     'Lima',
     'Arequipa',
