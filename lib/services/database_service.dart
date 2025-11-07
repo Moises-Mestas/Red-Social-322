@@ -150,4 +150,103 @@ class DatabaseService {
         .orderBy("lastMessageSendTs", descending: true)
         .snapshots();
   }
+
+
+
+
+
+
+// --- Métodos para Comentarios (Subcolección de Posts) ---
+
+  // Añadir un comentario (o respuesta) a un post
+  Future<void> addComment(String postId, Map<String, dynamic> commentData) async {
+    await _firestore
+        .collection(AppConstants.postsCollection)
+        .doc(postId)
+        .collection(AppConstants.commentsSubcollection) // <-- Subcolección
+        .add(commentData);
+  }
+Future<void> updatePostCommentCount(String postId) async {
+    final docRef = _firestore
+        .collection(AppConstants.postsCollection)
+        .doc(postId);
+
+    // Usa FieldValue.increment(1) para sumar 1 al contador actual
+    await docRef.update({
+      "commentCount": FieldValue.increment(1)
+    });
+  }
+  // Obtener el stream de comentarios de un post
+  Stream<QuerySnapshot> getComments(String postId) {
+    return _firestore
+        .collection(AppConstants.postsCollection)
+        .doc(postId)
+        .collection(AppConstants.commentsSubcollection)
+        .orderBy("createdAt", descending: true) // <-- Del más reciente al más antiguo
+        .snapshots();
+  }
+
+  // Dar/quitar like a un comentario específico
+  Future<void> toggleLikeOnComment({
+    required String postId,
+    required String commentId,
+    required String userId,
+    required bool isLiked,
+  }) async {
+    final docRef = _firestore
+        .collection(AppConstants.postsCollection)
+        .doc(postId)
+        .collection(AppConstants.commentsSubcollection)
+        .doc(commentId);
+
+    if (isLiked) {
+      // Si ya tiene like, quítalo
+      await docRef.update({
+        "likes": FieldValue.arrayRemove([userId])
+      });
+    } else {
+      // Si no tiene like, añádelo
+      await docRef.update({
+        "likes": FieldValue.arrayUnion([userId])
+      });
+    }
+  }
+
+
+
+// --- Métodos para Posts ---
+  // Crear una nueva publicación
+  Future<void> createPost(Map<String, dynamic> postData) async {
+    await _firestore
+        .collection(AppConstants.postsCollection)
+        .add(postData);
+  }
+
+  // Obtener el stream de todas las publicaciones (el feed)
+  Stream<QuerySnapshot> getPosts() {
+    return _firestore
+        .collection(AppConstants.postsCollection)
+        .orderBy("createdAt", descending: true) // Las más nuevas primero
+        .snapshots();
+  }
+
+  // Dar o quitar like (la lógica de 'toggle')
+  Future<void> toggleLike(String postId, String userId, bool isLiked) async {
+    final docRef = _firestore
+        .collection(AppConstants.postsCollection)
+        .doc(postId);
+
+    if (isLiked) {
+      // Si ya tiene like, quítalo (arrayRemove)
+      await docRef.update({
+        "likes": FieldValue.arrayRemove([userId])
+      });
+    } else {
+      // Si no tiene like, añádelo (arrayUnion)
+      await docRef.update({
+        "likes": FieldValue.arrayUnion([userId])
+      });
+    }
+  }
+
 }

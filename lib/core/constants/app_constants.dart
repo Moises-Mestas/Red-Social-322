@@ -14,4 +14,8 @@ class AppConstants {
   static const String groupImagesPath = "group_images";
   static const String blogImagesPath = "blogImage";
   static const String uploadsPath = "uploads";
+
+  static const String postsCollection = "posts";
+  static const String commentsSubcollection = "comments";
+  static const String postImagesPath = "post_images"; // Para guardar imágenes de posts
 }

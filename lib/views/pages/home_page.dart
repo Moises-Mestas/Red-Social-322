@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/controllers/chat_controller.dart';
-import 'package:flutter_application_3/models/user_model.dart';
-
 import 'package:flutter_application_3/services/database_service.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
 import 'package:flutter_application_3/views/pages/chat_page.dart';
 import 'package:flutter_application_3/views/pages/grupos_page.dart';
+import 'package:flutter_application_3/views/pages/principal_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
 import 'package:flutter_application_3/views/widgets/chat_room_list_tile.dart';
 
@@ -20,7 +19,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final ChatController _chatController = ChatController();
-  final SearchController _searchControllerInstance = SearchController();
+  // final SearchController _searchControllerInstance = SearchController(); // No parece usarse, comentado para evitar warnings
   final DatabaseService _databaseService = DatabaseService();
   final SharedPrefService _sharedPrefService = SharedPrefService();
 
@@ -29,6 +28,9 @@ class _HomePageState extends State<HomePage> {
   bool _search = false;
   List<Map<String, dynamic>> _tempSearchStore = [];
   String _lastSearchKey = "";
+  
+  // Índice para controlar qué botón de la barra inferior está activo
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -92,6 +94,28 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _lastSearchKey = searchKey;
     });
+  }
+
+  // Método para manejar el tap en la barra inferior
+// Método para manejar el tap en la barra inferior
+  void _onItemTapped(int index) {
+    // Primero, actualiza el estado para que el ícono se vea seleccionado
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Añade la lógica de navegación
+    if (index == 0) {
+      // Si el índice es 0 (el botón 'Inicio'), navega a PrincipalPage
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const PrincipalPage()),
+      );
+    } 
+    // Aquí podrías añadir 'else if' para los otros botones (Mapa, Notificaciones, etc.)
+    // else if (index == 1) {
+    //   Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaPage()));
+    // }
   }
 
   Widget _chatRoomList() {
@@ -390,6 +414,36 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+      ),
+      // BARRA DE NAVEGACIÓN INFERIOR AGREGADA
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+        type: BottomNavigationBarType.fixed, // Necesario para más de 3 items con color fijo
+        selectedItemColor: Colors.white, // Color del ícono activo
+        unselectedItemColor: Colors.white.withOpacity(0.5), // Color de íconos inactivos
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        showSelectedLabels: false, // Ocultar etiquetas para un look más limpio
+        showUnselectedLabels: false,
+        elevation: 0, // Elimina la sombra superior si lo deseas más plano
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_filled),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: 'Mapa',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Notificaciones',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Ajustes',
+          ),
+        ],
       ),
     );
   }
