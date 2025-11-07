@@ -50,6 +50,7 @@ class PostModel {
       'userName': userName,
       'userImageUrl': userImageUrl,
       'likes': likes,
+      'commentCount': commentCount, // <-- ESTA LÍNEA FALTABA
     };
   }
 }
