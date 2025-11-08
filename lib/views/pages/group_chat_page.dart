@@ -234,7 +234,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4),
       child: Row(
         mainAxisAlignment:
             sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -493,17 +493,16 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.groupName),
-        centerTitle: true, // <-- TÍTULO CENTRADO
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navegar a la nueva página de información
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -526,12 +525,19 @@ class _GroupChatPageState extends State<GroupChatPage> {
       body: Column(
         children: [
           Expanded(child: _buildMessageList()),
-          // --- MODIFICADO: Contenedor para el banner y el input ---
-          Column(
-            children: [
-              _buildReplyBanner(),
-              _buildInputArea(),
-            ],
+          
+          // --- INICIO DE LA MODIFICACIÓN ---
+          // Envolvemos el área de input en un Padding
+          Padding(
+            // Añadimos 24 píxeles de espacio en la parte inferior
+            // (Puedes cambiar este valor si quieres más o menos espacio)
+            padding: const EdgeInsets.only(bottom: 60.0), 
+            child: Column(
+              children: [
+                _buildReplyBanner(),
+                _buildInputArea(),
+              ],
+            ),
           )
         ],
       ),
