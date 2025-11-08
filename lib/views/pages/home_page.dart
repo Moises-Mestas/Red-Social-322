@@ -12,8 +12,11 @@ import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:flutter_application_3/views/widgets/chat_room_list_tile.dart';
 
 class HomePage extends StatefulWidget {
-
-  const HomePage({super.key});
+  // --- MODIFICADO ---
+  // Añadido para que puedas navegar a una pestaña específica desde otra página
+  final int? initialIndex;
+  const HomePage({super.key, this.initialIndex});
+  // ------------------
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -22,22 +25,33 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final ChatController _chatController = ChatController();
-  // final SearchController _searchControllerInstance = SearchController(); // No parece usarse, comentado para evitar warnings
   final DatabaseService _databaseService = DatabaseService();
   final SharedPrefService _sharedPrefService = SharedPrefService();
 
   String? myUsername, myName, myEmail, myPicture;
   Stream? chatRoomsStream;
   bool _search = false;
-  List<Map<String, dynamic>> _tempSearchStore = [];
-  String _lastSearchKey = "";
 
-  // Índice para controlar qué botón de la barra inferior está activo
+  // --- VARIABLES DE BÚSQUEDA MODIFICADAS ---
+  // Lista que guarda los datos de los usuarios con los que chateas
+  List<Map<String, dynamic>> _chatPartnersData = []; 
+  // Lista que guarda los resultados filtrados de la búsqueda local
+  List<Map<String, dynamic>> _filteredChatPartners = [];
+  // Estado de carga para la lista de compañeros de chat
+  bool _isPartnerListLoading = true; 
+  // ----------------------------------------
+
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    // --- MODIFICADO ---
+    // Si se pasa un initialIndex, úsalo
+    if (widget.initialIndex != null) {
+      _selectedIndex = widget.initialIndex!;
+    }
+    // ------------------
     _loadUserData();
   }
 
@@ -51,77 +65,110 @@ class _HomePageState extends State<HomePage> {
     });
 
     if (myUsername != null) {
-      chatRoomsStream = _databaseService.getUserChatRooms(myUsername!);
+      // Mantenemos el stream para la lista de chats en tiempo real
+      chatRoomsStream = _databaseService.getUserChatRooms(myUsername!); 
+      // --- NUEVO ---
+      // Cargamos los datos de los compañeros de chat para la búsqueda
+      await _loadChatPartnersData(); 
+      // -------------
       setState(() {});
     }
   }
 
+  // --- NUEVO MÉTODO PARA CARGAR LOS DATOS DE LOS COMPAÑEROS DE CHAT ---
+  Future<void> _loadChatPartnersData() async {
+    if (myUsername == null) return;
+
+    setState(() { _isPartnerListLoading = true; });
+
+    try {
+      // 1. Obtenemos la lista actual de chatrooms
+      QuerySnapshot chatRoomSnapshot = await _databaseService.getUserChatRooms(myUsername!).first;
+      
+      // 2. Preparamos una lista de "futuros" para buscar la info de cada usuario
+      List<Future<QuerySnapshot>> userFutures = [];
+      
+      for (var doc in chatRoomSnapshot.docs) {
+        // Extraemos el apodo del otro usuario
+        String otherUsername = doc.id.replaceAll("_", "").replaceAll(myUsername!, "");
+        userFutures.add(_databaseService.getUserInfo(otherUsername));
+      }
+
+      // 3. Ejecutamos todas las consultas a la vez (mucho más rápido)
+      List<QuerySnapshot> userSnapshots = await Future.wait(userFutures);
+
+      List<Map<String, dynamic>> partners = [];
+      for (var userDoc in userSnapshots) {
+        if (userDoc.docs.isNotEmpty) {
+          partners.add(userDoc.docs.first.data() as Map<String, dynamic>);
+        }
+      }
+
+      // 4. Guardamos los datos en nuestro estado local
+      setState(() {
+        _chatPartnersData = partners;
+        _isPartnerListLoading = false;
+      });
+    } catch (e) {
+      print("Error cargando compañeros de chat: $e");
+      setState(() { _isPartnerListLoading = false; });
+    }
+  }
+  // -----------------------------------------------------------------
+
+  // --- LÓGICA DE BÚSQUEDA MODIFICADA ---
   void _initializeSearch(String value) {
     if (value.isEmpty) {
       setState(() {
-        _tempSearchStore.clear();
         _search = false;
-        _lastSearchKey = "";
+        _filteredChatPartners.clear();
       });
       return;
     }
 
-    setState(() {
-      _search = true;
-    });
-
-    String searchKey = value.substring(0, 1).toUpperCase();
     String upperValue = value.toUpperCase();
 
-    if (_lastSearchKey != searchKey || _tempSearchStore.isEmpty) {
-      _databaseService.searchUser(value).then((QuerySnapshot docs) {
-        List<Map<String, dynamic>> queryResultSet = [];
-        for (var doc in docs.docs) {
-          queryResultSet.add(doc.data() as Map<String, dynamic>);
-        }
-
-        setState(() {
-          _tempSearchStore = queryResultSet.where((element) {
-            return element['username'].toString().startsWith(upperValue);
-          }).toList();
-        });
-      });
-    } else {
-      setState(() {
-        _tempSearchStore = _tempSearchStore.where((element) {
-          return element['username'].toString().startsWith(upperValue);
-        }).toList();
-      });
-    }
-
     setState(() {
-      _lastSearchKey = searchKey;
+      _search = true;
+      // Filtramos la lista LOCAL (_chatPartnersData) en lugar de consultar Firestore
+      _filteredChatPartners = _chatPartnersData.where((element) {
+        return element['username'].toString().startsWith(upperValue);
+      }).toList();
     });
   }
+  // -------------------------------------
 
   void _onItemTapped(int index) {
+    // --- MODIFICADO ---
+    // Si ya estamos en la pestaña, no hacemos nada
+    if (_selectedIndex == index) return;
+
     setState(() {
       _selectedIndex = index;
     });
 
+    // Usamos Navigator.pushReplacement para no apilar páginas
     if (index == 0) {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const PrincipalPage()),
+        PageRouteBuilder(
+          pageBuilder: (context, a, b) => const PrincipalPage(),
+          transitionDuration: Duration.zero,
+        ),
       );
     }
     if (index == 1) {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const TableroPage()),
+        PageRouteBuilder(
+          pageBuilder: (context, a, b) => const TableroPage(),
+          transitionDuration: Duration.zero,
+        ),
       );
     }
-
-    // Aquí podrías añadir 'else if' para los otros botones (Mapa, Notificaciones, etc.)
-    // else if (index == 1) {
-    //   Navigator.push(context, MaterialPageRoute(builder: (context) => const MapaPage()));
-    // }
+    // ... puedes añadir más 'else if' para los otros índices
   }
+  // --------------------
 
   Widget _chatRoomList() {
     return StreamBuilder(
@@ -154,8 +201,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // En el método _buildResultCard del HomePage, reemplaza el onTap:
   Widget _buildResultCard(Map<String, dynamic> data, BuildContext context) {
+    // Este widget ya está perfecto, navega a UserProfilePage
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -163,7 +210,6 @@ class _HomePageState extends State<HomePage> {
           _searchController.clear();
         });
 
-        // Navegar al perfil del usuario usando solo el username
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -370,76 +416,83 @@ class _HomePageState extends State<HomePage> {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 30.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFececf8),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          _initializeSearch(value.toUpperCase());
-                        },
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          prefixIcon: Icon(Icons.search),
-                          hintText: "Buscar Nombre...",
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20.0),
-
-                    // LISTA DE RESULTADOS DE BÚSQUEDA O CHATS
-                    Expanded(
-                      child: _search
-                          ? ListView(
-                              padding: const EdgeInsets.only(
-                                left: 10.0,
-                                right: 10.0,
+                // --- MODIFICADO: Añadido chequeo de carga ---
+                child: _isPartnerListLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: [
+                          const SizedBox(height: 30.0),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFececf8),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (value) {
+                                // Aquí llamamos a la nueva función de búsqueda
+                                _initializeSearch(value); 
+                              },
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                prefixIcon: Icon(Icons.search),
+                                hintText: "Buscar en mis chats...", // Texto de hint actualizado
                               ),
-                              primary: false,
-                              shrinkWrap: true,
-                              children: _tempSearchStore.map((element) {
-                                return _buildResultCard(element, context);
-                              }).toList(),
-                            )
-                          : _chatRoomList(),
-                    ),
-                  ],
-                ),
+                            ),
+                          ),
+                          const SizedBox(height: 20.0),
+
+                          // --- MODIFICADO: Muestra resultados o lista de chat ---
+                          Expanded(
+                            child: _search
+                                ? ListView.builder(
+                                    padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+                                    primary: false,
+                                    shrinkWrap: true,
+                                    itemCount: _filteredChatPartners.length,
+                                    itemBuilder: (context, index) {
+                                      return _buildResultCard(
+                                          _filteredChatPartners[index], context);
+                                    },
+                                  )
+                                : _chatRoomList(), // Muestra la lista de chats normal
+                          ),
+                          // ----------------------------------------------------
+                        ],
+                      ),
               ),
             ),
           ],
         ),
       ),
-      // BARRA DE NAVEGACIÓN INFERIOR AGREGADA
+      // BARRA DE NAVEGACIÓN INFERIOR
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color.fromARGB(255, 79, 191, 219),
-        type: BottomNavigationBarType
-            .fixed, // Necesario para más de 3 items con color fijo
-        selectedItemColor: Colors.white, // Color del ícono activo
-        unselectedItemColor: Colors.white.withOpacity(
-          0.5,
-        ), // Color de íconos inactivos
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.5),
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        showSelectedLabels: false, // Ocultar etiquetas para un look más limpio
+        showSelectedLabels: false,
         showUnselectedLabels: false,
-        elevation: 0, // Elimina la sombra superior si lo deseas más plano
+        elevation: 0,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_filled),
             label: 'Inicio',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: Icon(Icons.map), // <-- CAMBIADO A ÍNDICE 1
+            label: 'Mapa',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications), // <-- CAMBIADO A ÍNDICE 2
             label: 'Notificaciones',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Ajustes'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings), // <-- CAMBIADO A ÍNDICE 3
+            label: 'Ajustes',
+          ),
         ],
       ),
     );

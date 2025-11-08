@@ -7,6 +7,7 @@ import 'package:flutter_application_3/models/comment_model.dart';
 import 'package:flutter_application_3/models/post_model.dart';
 import 'package:flutter_application_3/services/database_service.dart'; 
 import 'package:flutter_application_3/services/shared_pref_service.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart'; // <-- 1. IMPORTAR HOME PAGE
 import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -168,6 +169,18 @@ class _PrincipalPageState extends State<PrincipalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // --- INICIO DE LA MODIFICACIÓN ---
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // Navega (reemplazando) de vuelta a HomePage
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage()),
+            );
+          },
+        ),
+        // --- FIN DE LA MODIFICACIÓN ---
         title: const Text('Mi Muro'),
         backgroundColor: const Color.fromARGB(255, 79, 191, 219),
         titleTextStyle: const TextStyle(
@@ -246,7 +259,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // Widget que construye CADA publicación
   Widget _buildPostWidget(PostModel post) {
     bool isLiked = post.likes.contains(_myUserId);
     String timeAgo = timeago.format(post.createdAt.toDate(), locale: 'es');
@@ -260,7 +272,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- HEADER (Foto, Nombre, Hora) ---
             Row(
               children: [
                 GestureDetector(
@@ -275,7 +286,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => UserProfilePage(
-                          username: post.userName, // Pasa el APODO
+                          username: post.userName,
                         ),
                       ),
                     );
@@ -291,10 +302,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- 🔴 INICIO DE LA MODIFICACIÓN ---
-                    // Ahora muestra el apodo (post.userName)
                     Text(post.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    // --- 🔴 FIN DE LA MODIFICACIÓN ---
                     Text(timeAgo, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
@@ -302,7 +310,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
             ),
             const SizedBox(height: 15),
 
-            // --- CUERPO (Texto e Imagen) ---
             if (post.text.isNotEmpty)
               Text(post.text, style: const TextStyle(fontSize: 16)),
             
@@ -324,7 +331,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
             const SizedBox(height: 10),
             Divider(),
 
-            // --- FOOTER (Like y Comentario) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -362,9 +368,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // ... (El resto del archivo no cambia) ...
-
-  // Método para mostrar el modal de crear publicación
+  // ... (El resto del archivo: _showCreatePostModal, _showCommentsModal, y _CommentsModalContent no cambian) ...
+  
   void _showCreatePostModal() {
     _textController.clear();
     setState(() {
@@ -454,7 +459,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // --- Mostrar Modal de Comentarios ---
   void _showCommentsModal(BuildContext context, String postId) {
     showModalBottomSheet(
       context: context,
@@ -477,10 +481,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
       },
     );
   }
-} // --- FIN DE LA CLASE _PrincipalPageState ---
+} 
 
 
-// --- WIDGET INTERNO PARA MANEJAR EL MODAL DE COMENTARIOS ---
 class _CommentsModalContent extends StatefulWidget {
   final String postId;
   final PostController postController;
