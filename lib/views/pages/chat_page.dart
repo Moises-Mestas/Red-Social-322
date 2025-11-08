@@ -189,6 +189,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   // --- WIDGET REDISEÑADO ---
+  // --- WIDGET COMPLETAMENTE REDISEÑADO ---
   Widget _chatMessageTile({
     required String message,
     required bool sendByMe,
@@ -198,7 +199,6 @@ class _ChatPageState extends State<ChatPage> {
     required String senderPicture,
     String? replyText,
     String? replySenderApodo,
-    // (ya no se necesita onLongPress)
   }) {
     final type = dataType.toLowerCase();
 
@@ -217,7 +217,8 @@ class _ChatPageState extends State<ChatPage> {
             return const Center(child: CircularProgressIndicator());
           },
           errorBuilder: (context, error, stackTrace) {
-            return const Text("Error al cargar la imagen", style: TextStyle(color: Colors.white));
+            return const Text("Error al cargar la imagen",
+                style: TextStyle(color: Colors.white));
           },
         ),
       );
@@ -227,13 +228,18 @@ class _ChatPageState extends State<ChatPage> {
         children: const [
           Icon(Icons.mic, color: Colors.white),
           SizedBox(width: 8),
-          Text("Audio", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text("Audio",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
         ],
       );
     } else {
       messageContent = Text(
         message,
-        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+        style: const TextStyle(
+            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
       );
     }
 
@@ -276,45 +282,56 @@ class _ChatPageState extends State<ChatPage> {
       );
     }
 
+    // --- INICIO DE LA MODIFICACIÓN ---
+    
+    // Define el tamaño de la foto y su padding
+    const double avatarRadius = 25;
+    const double avatarPadding = 8;
+    // El espacio total que ocupa la columna del avatar es: (radio * 2) + padding
+    const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      // 1. Este padding aplica el MARGEN DE PANTALLA (12px en ambos lados)
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 4),
       child: Row(
-        mainAxisAlignment: sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // 1. FOTO DE PERFIL (Clickable)
+          // 2. FOTO o SPACER (Lado Izquierdo)
           if (!sendByMe)
-            // --- INICIO DE LA MODIFICACIÓN (Foto Clickable) ---
             GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => UserProfilePage(
-                      username: senderApodo, // <-- Navega al perfil
+                      username: senderApodo,
                     ),
                   ),
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.only(right: 8.0),
+                padding: const EdgeInsets.only(right: avatarPadding), // 8px
                 child: CircleAvatar(
-                  radius: 22,
+                  radius: avatarRadius, // 22px (total 44px)
                   backgroundImage: senderPicture.isNotEmpty
                       ? NetworkImage(senderPicture)
                       : null,
-                  child: senderPicture.isEmpty
-                      ? const Icon(Icons.person)
-                      : null,
+                  child:
+                      senderPicture.isEmpty ? const Icon(Icons.person) : null,
                 ),
               ),
-            ),
-            // --- FIN DE LA MODIFICACIÓN ---
+            )
+          else
+            // Si el mensaje es mío, dejo un espacio vacío del mismo tamaño
+            const SizedBox(width: avatarTotalSpace), // 52px
 
-          // 2. COLUMNA DEL MENSAJE
+          // 3. COLUMNA DEL MENSAJE (Flexible)
           Flexible(
             child: Column(
-              crossAxisAlignment: sendByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  sendByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 // APODO
                 if (!sendByMe)
@@ -329,24 +346,32 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                     ),
                   ),
-                
+
                 // GLOBO DEL MENSAJE
                 Container(
                   decoration: BoxDecoration(
                     color: sendByMe ? Colors.black45 : Colors.blue,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
-                      bottomRight: sendByMe ? const Radius.circular(0) : const Radius.circular(30),
+                      bottomRight: sendByMe
+                          ? const Radius.circular(0)
+                          : const Radius.circular(30),
                       topRight: const Radius.circular(30),
-                      bottomLeft: sendByMe ? const Radius.circular(30) : const Radius.circular(0),
+                      bottomLeft: sendByMe
+                          ? const Radius.circular(30)
+                          : const Radius.circular(0),
                     ),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
-                      bottomRight: sendByMe ? const Radius.circular(0) : const Radius.circular(30),
+                      bottomRight: sendByMe
+                          ? const Radius.circular(0)
+                          : const Radius.circular(30),
                       topRight: const Radius.circular(30),
-                      bottomLeft: sendByMe ? const Radius.circular(30) : const Radius.circular(0),
+                      bottomLeft: sendByMe
+                          ? const Radius.circular(30)
+                          : const Radius.circular(0),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,26 +388,35 @@ class _ChatPageState extends State<ChatPage> {
 
                 // HORA
                 Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 10, right: 10),
+                  padding:
+                      const EdgeInsets.only(top: 4, left: 10, right: 10),
                   child: Text(
                     timestamp,
                     style: const TextStyle(
                       color: Colors.grey,
-                      fontSize: 15,
+                      fontSize: 11,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          
+
+          // 4. SPACER (Lado Derecho)
           if (sendByMe)
-            const SizedBox(width: 52), 
+            // Si el mensaje es mío, no hay avatar, así que no pongo padding
+            const SizedBox.shrink() 
+          else
+            // Si el mensaje es del OTRO, dejo un espacio vacío
+            // para que su burbuja no se estire hasta el borde
+            const SizedBox(width: avatarTotalSpace), // 52px
         ],
       ),
     );
+    // --- FIN DE LA MODIFICACIÓN ---
   }
 
+// ... (El resto de tu archivo chat_page.dart no cambia) ...
 
   Widget _chatMessageList() {
     return StreamBuilder(
@@ -448,6 +482,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  // ... (El resto de tu archivo: _openRecordingDialog, _buildReplyBanner, build(), etc. no cambian) ...
   Future<void> _openRecordingDialog() {
     // ... (tu código no cambia) ...
     return showDialog(
@@ -456,7 +491,6 @@ class _ChatPageState extends State<ChatPage> {
         content: SingleChildScrollView(
           child: Column(
             children: [
-              // ...
                const Text(
                 "Nota de voz",
                 style: TextStyle(
@@ -489,13 +523,13 @@ class _ChatPageState extends State<ChatPage> {
                 onPressed: () {
                   Navigator.pop(context);
                   if (!_isRecording) {
-                    _uploadAudioFile(); // Llama a la versión actualizada
+                    _uploadAudioFile(); 
                   }
                 },
                 child: const Text(
-                 'Subir Audio',
-                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                ),
+              'Subir Audio',
+              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              ),
               ),
             ],
           ),
@@ -504,10 +538,9 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  // --- WIDGET: Banner de respuesta ---
   Widget _buildReplyBanner() {
     if (_replyToMessageId == null) {
-      return const SizedBox.shrink(); // No muestra nada si no hay respuesta
+      return const SizedBox.shrink();
     }
 
     return Container(
@@ -546,7 +579,6 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
-  // ------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -556,7 +588,6 @@ class _ChatPageState extends State<ChatPage> {
         margin: const EdgeInsets.only(top: 40.0),
         child: Column(
           children: [
-            // Header centrado con el Apodo
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Row(
@@ -578,7 +609,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   Text(
-                    widget.username, // Apodo
+                    widget.username,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -612,11 +643,9 @@ class _ChatPageState extends State<ChatPage> {
                         child: _chatMessageList(),
                       ),
                     ),
-                    
-                    // --- MODIFICADO: Añadido banner y área de input ---
                     Column(
                       children: [
-                        _buildReplyBanner(), // <-- BANNER DE RESPUESTA
+                        _buildReplyBanner(), 
                         Container(
                           margin: const EdgeInsets.only(bottom: 50.0),
                           padding: const EdgeInsets.symmetric(
