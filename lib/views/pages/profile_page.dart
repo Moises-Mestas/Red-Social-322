@@ -170,10 +170,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Scaffold _buildLoadingScaffold() {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+      backgroundColor: const Color.fromARGB(255, 220, 221, 221),
       appBar: AppBar(
         title: const Text("Perfil"),
-        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+        backgroundColor: const Color.fromARGB(255, 239, 240, 240),
       ),
       body: const Center(child: CircularProgressIndicator()),
     );
@@ -195,29 +195,50 @@ class _ProfilePageState extends State<ProfilePage> {
     Map<String, dynamic>? userData,
   ) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+      backgroundColor: const Color.fromARGB(255, 238, 238, 238),
       appBar: AppBar(
-        title: const Text("Perfil"),
-        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+        title: const Text(
+          "PERFIL",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold, // Negrita
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: const Color(0xffD32323),
         actions: [
           if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
+            Padding(
+              padding: const EdgeInsets.only(right: 10.0), // Mover a la izquierda
+              child: IconButton(
+                icon: const Icon(
+                  Icons.edit,
+                  color: Colors.white,
+                  size: 28.0,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isEditing = true;
+                  });
+                },
+              ),
             ),
           if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                setState(() {
-                  _isEditing = false;
-                  _loadUserData(userData!);
-                });
-              },
+            Padding(
+              padding: const EdgeInsets.only(right: 10.0), // Mover a la izquierda
+              child: IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 28.0,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isEditing = false;
+                    _loadUserData(userData!);
+                  });
+                },
+              ),
             ),
         ],
       ),
@@ -423,7 +444,7 @@ class _ProfilePageState extends State<ProfilePage> {
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 79, 191, 219),
+            color: Color(0xffD32323),
           ),
         ),
         const SizedBox(height: 5),
@@ -432,7 +453,7 @@ class _ProfilePageState extends State<ProfilePage> {
           decoration: BoxDecoration(
             color: isEditable ? Colors.white : Colors.grey[200],
             borderRadius: BorderRadius.circular(15),
-            border: isEditable ? Border.all(color: Colors.blue) : null,
+            border: isEditable ? Border.all(color: Colors.red) : null,
           ),
           child: isEditable
               ? TextField(
@@ -458,7 +479,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return {
       'displayName': userData['displayName'],
-      'email': userData['Email'],
+      'Email': userData['Email'], 
       'username': userData['username'],
       'imageUrl': userData['imageUrl'],
     };

@@ -12,10 +12,10 @@ import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:flutter_application_3/views/widgets/chat_room_list_tile.dart';
 
 class HomePage extends StatefulWidget {
-  // --- MODIFICADO ---
-  // Añadido para que puedas navegar a una pestaña específica desde otra página
   final int? initialIndex;
-  const HomePage({super.key, this.initialIndex});
+  // --- MODIFICADO ---
+  // El índice 2 es ahora la HomePage (chats)
+  const HomePage({super.key, this.initialIndex = 2});
   // ------------------
 
   @override
@@ -32,25 +32,18 @@ class _HomePageState extends State<HomePage> {
   Stream? chatRoomsStream;
   bool _search = false;
 
-  // --- VARIABLES DE BÚSQUEDA MODIFICADAS ---
-  // Lista que guarda los datos de los usuarios con los que chateas
   List<Map<String, dynamic>> _chatPartnersData = []; 
-  // Lista que guarda los resultados filtrados de la búsqueda local
   List<Map<String, dynamic>> _filteredChatPartners = [];
-  // Estado de carga para la lista de compañeros de chat
   bool _isPartnerListLoading = true; 
-  // ----------------------------------------
-
+  
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     // --- MODIFICADO ---
-    // Si se pasa un initialIndex, úsalo
-    if (widget.initialIndex != null) {
-      _selectedIndex = widget.initialIndex!;
-    }
+    // El índice por defecto de esta página ahora es 2
+    _selectedIndex = widget.initialIndex ?? 2;
     // ------------------
     _loadUserData();
   }
@@ -65,36 +58,27 @@ class _HomePageState extends State<HomePage> {
     });
 
     if (myUsername != null) {
-      // Mantenemos el stream para la lista de chats en tiempo real
       chatRoomsStream = _databaseService.getUserChatRooms(myUsername!); 
-      // --- NUEVO ---
-      // Cargamos los datos de los compañeros de chat para la búsqueda
       await _loadChatPartnersData(); 
-      // -------------
       setState(() {});
     }
   }
 
-  // --- NUEVO MÉTODO PARA CARGAR LOS DATOS DE LOS COMPAÑEROS DE CHAT ---
   Future<void> _loadChatPartnersData() async {
     if (myUsername == null) return;
 
     setState(() { _isPartnerListLoading = true; });
 
     try {
-      // 1. Obtenemos la lista actual de chatrooms
       QuerySnapshot chatRoomSnapshot = await _databaseService.getUserChatRooms(myUsername!).first;
       
-      // 2. Preparamos una lista de "futuros" para buscar la info de cada usuario
       List<Future<QuerySnapshot>> userFutures = [];
       
       for (var doc in chatRoomSnapshot.docs) {
-        // Extraemos el apodo del otro usuario
         String otherUsername = doc.id.replaceAll("_", "").replaceAll(myUsername!, "");
         userFutures.add(_databaseService.getUserInfo(otherUsername));
       }
 
-      // 3. Ejecutamos todas las consultas a la vez (mucho más rápido)
       List<QuerySnapshot> userSnapshots = await Future.wait(userFutures);
 
       List<Map<String, dynamic>> partners = [];
@@ -104,7 +88,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-      // 4. Guardamos los datos en nuestro estado local
       setState(() {
         _chatPartnersData = partners;
         _isPartnerListLoading = false;
@@ -114,9 +97,7 @@ class _HomePageState extends State<HomePage> {
       setState(() { _isPartnerListLoading = false; });
     }
   }
-  // -----------------------------------------------------------------
 
-  // --- LÓGICA DE BÚSQUEDA MODIFICADA ---
   void _initializeSearch(String value) {
     if (value.isEmpty) {
       setState(() {
@@ -130,45 +111,77 @@ class _HomePageState extends State<HomePage> {
 
     setState(() {
       _search = true;
-      // Filtramos la lista LOCAL (_chatPartnersData) en lugar de consultar Firestore
       _filteredChatPartners = _chatPartnersData.where((element) {
         return element['username'].toString().startsWith(upperValue);
       }).toList();
     });
   }
-  // -------------------------------------
 
+  // --- NAVEGACIÓN COMPLETAMENTE ACTUALIZADA ---
   void _onItemTapped(int index) {
-    // --- MODIFICADO ---
     // Si ya estamos en la pestaña, no hacemos nada
     if (_selectedIndex == index) return;
 
+    if (index == 1 && myUsername == null) {
+          return; 
+        }
     setState(() {
       _selectedIndex = index;
     });
 
     // Usamos Navigator.pushReplacement para no apilar páginas
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, a, b) => const PrincipalPage(),
-          transitionDuration: Duration.zero,
-        ),
-      );
+    // y PageRouteBuilder para que el cambio sea instantáneo
+    switch (index) {
+      case 0: // Muro Principal
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const PrincipalPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1: // Mi Perfil (Tablero)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => UserProfilePage(username: myUsername!),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2: // Chats (Esta página)
+        // Ya estamos aquí, no es necesario navegar
+        // Pero si vienes de otra pestaña, esto te trae de vuelta
+         Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const HomePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3: // Grupos
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const GruposPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 4: // Ajustes (ProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const ProfilePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
     }
-    if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, a, b) => const TableroPage(),
-          transitionDuration: Duration.zero,
-        ),
-      );
-    }
-    // ... puedes añadir más 'else if' para los otros índices
   }
-  // --------------------
+  // ---------------------------------------------
 
   Widget _chatRoomList() {
     return StreamBuilder(
@@ -202,7 +215,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildResultCard(Map<String, dynamic> data, BuildContext context) {
-    // Este widget ya está perfecto, navega a UserProfilePage
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -280,13 +292,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+      backgroundColor: const Color(0xffD32323), // <-- Color de fondo cambiado
       body: Container(
         margin: const EdgeInsets.only(top: 40.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HEADER
+            // --- HEADER MODIFICADO (Botones eliminados) ---
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
               child: Row(
@@ -299,7 +311,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(width: 10.0),
                   const Text(
-                    "Hola, ",
+                    " ", // Eliminado "Hola, "
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -308,7 +320,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Text(
-                    myName ?? "...",
+                    myUsername?? "...", // Muestra el apodo
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -317,87 +329,14 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const Spacer(),
-                  // Botón de Perfil
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ProfilePage()),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 10.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Color.fromARGB(255, 79, 191, 219),
-                          size: 30.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Botón de Grupos
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const GruposPage(),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 10.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.group,
-                          color: Color.fromARGB(255, 79, 191, 219),
-                          size: 30.0,
-                        ),
-                      ),
-                    ),
-                  ),
+                  // <-- BOTONES DE PERFIL Y GRUPOS ELIMINADOS
                 ],
               ),
             ),
             const SizedBox(height: 10.0),
-
-            // TITULO "Bienvenido a:"
-            const Padding(
-              padding: EdgeInsets.only(left: 20.0),
-              child: Text(
-                "Bienvenido a:",
-                style: TextStyle(
-                  color: Color.fromARGB(195, 255, 255, 255),
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            // TÍTULO "AquiNomas"
-            const Padding(
-              padding: EdgeInsets.only(left: 20.0),
-              child: Text(
-                "AquiNomas",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 40.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            
+            // --- TÍTULOS ELIMINADOS ---
+            // (Se eliminó "Bienvenido a:" y "AquiNomas")
             const SizedBox(height: 30.0),
 
             // PRINCIPAL CONTAINER
@@ -416,7 +355,6 @@ class _HomePageState extends State<HomePage> {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                // --- MODIFICADO: Añadido chequeo de carga ---
                 child: _isPartnerListLoading
                     ? const Center(child: CircularProgressIndicator())
                     : Column(
@@ -430,19 +368,18 @@ class _HomePageState extends State<HomePage> {
                             child: TextField(
                               controller: _searchController,
                               onChanged: (value) {
-                                // Aquí llamamos a la nueva función de búsqueda
                                 _initializeSearch(value); 
                               },
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 prefixIcon: Icon(Icons.search),
-                                hintText: "Buscar en mis chats...", // Texto de hint actualizado
+                                hintText: "Buscar en mis chats...",
                               ),
                             ),
                           ),
                           const SizedBox(height: 20.0),
 
-                          // --- MODIFICADO: Muestra resultados o lista de chat ---
+                          // LISTA DE RESULTADOS O CHATS
                           Expanded(
                             child: _search
                                 ? ListView.builder(
@@ -455,9 +392,8 @@ class _HomePageState extends State<HomePage> {
                                           _filteredChatPartners[index], context);
                                     },
                                   )
-                                : _chatRoomList(), // Muestra la lista de chats normal
+                                : _chatRoomList(),
                           ),
-                          // ----------------------------------------------------
                         ],
                       ),
               ),
@@ -465,32 +401,37 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      // BARRA DE NAVEGACIÓN INFERIOR
+      
+      // --- BARRA DE NAVEGACIÓN ACTUALIZADA ---
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+        backgroundColor: const Color(0xffD32323), // Color cambiado
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),
-        currentIndex: _selectedIndex,
+        currentIndex: _selectedIndex, // <-- Se actualizará a 2
         onTap: _onItemTapped,
         showSelectedLabels: false,
         showUnselectedLabels: false,
         elevation: 0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: 'Inicio',
+            icon: Icon(Icons.home), // Icono 1: Muro
+            label: 'Muro',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map), // <-- CAMBIADO A ÍNDICE 1
-            label: 'Mapa',
+            icon: Icon(Icons.person), // Icono 2: Mi Perfil (Tablero)
+            label: 'Perfil',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications), // <-- CAMBIADO A ÍNDICE 2
-            label: 'Notificaciones',
+            icon: Icon(Icons.chat_bubble), // Icono 3: Chats (Esta página)
+            label: 'Chats',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings), // <-- CAMBIADO A ÍNDICE 3
+            icon: Icon(Icons.group), // Icono 4: Grupos
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings), // Icono 5: Ajustes
             label: 'Ajustes',
           ),
         ],

@@ -409,12 +409,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xff703eff).withOpacity(0.1),
+                            color: const Color(0xffD32323).withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.location_on,
-                            color: const Color(0xff703eff),
+                            color: const Color(0xffD32323),
                             size: 20,
                           ),
                         ),
@@ -455,7 +455,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(_getAppBarTitle()),
-        backgroundColor: const Color(0xff703eff),
+        backgroundColor: const Color(0xffD32323),
         foregroundColor: Colors.white,
         elevation: 0,
         leading: _currentPage > 0
@@ -506,7 +506,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           LinearProgressIndicator(
             value: (_currentPage + 1) / 3,
             backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xff703eff)),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xffD32323)),
             minHeight: 6,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -553,14 +553,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 height: 40,
                 decoration: BoxDecoration(
                   color: _usandoUbicacionActual
-                      ? const Color(0xff703eff).withOpacity(0.2)
+                      ? const Color(0xffD32323).withOpacity(0.2)
                       : Colors.grey[100],
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.my_location,
                   color: _usandoUbicacionActual
-                      ? const Color(0xff703eff)
+                      ? const Color(0xffD32323)
                       : Colors.grey,
                 ),
               ),
@@ -573,7 +573,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 style: TextStyle(fontSize: 12),
               ),
               trailing: _usandoUbicacionActual
-                  ? const Icon(Icons.check_circle, color: Color(0xff703eff))
+                  ? const Icon(Icons.check_circle, color: Color(0xffD32323))
                   : const Icon(Icons.chevron_right),
               onTap: _obtenerUbicacionActual,
             ),
@@ -595,7 +595,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   color:
                       !_usandoUbicacionActual &&
                           _ciudadController.text.isNotEmpty
-                      ? const Color(0xff703eff).withOpacity(0.2)
+                      ? const Color(0xffD32323).withOpacity(0.2)
                       : Colors.grey[100],
                   shape: BoxShape.circle,
                 ),
@@ -604,7 +604,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   color:
                       !_usandoUbicacionActual &&
                           _ciudadController.text.isNotEmpty
-                      ? const Color(0xff703eff)
+                      ? const Color(0xffD32323)
                       : Colors.grey,
                 ),
               ),
@@ -620,12 +620,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   fontSize: 12,
                   color: _ciudadController.text.isEmpty
                       ? Colors.grey
-                      : const Color(0xff703eff),
+                      : const Color(0xffD32323),
                 ),
               ),
               trailing:
                   !_usandoUbicacionActual && _ciudadController.text.isNotEmpty
-                  ? const Icon(Icons.check_circle, color: Color(0xff703eff))
+                  ? const Icon(Icons.check_circle, color: Color(0xffD32323))
                   : const Icon(Icons.chevron_right),
               onTap: _mostrarSeleccionCiudad,
             ),
@@ -638,10 +638,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xff703eff).withOpacity(0.1),
+                color: const Color(0xffD32323).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xff703eff).withOpacity(0.3),
+                  color: const Color(0xffD32323).withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -650,7 +650,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     _usandoUbicacionActual
                         ? Icons.my_location
                         : Icons.location_on,
-                    color: const Color(0xff703eff),
+                    color: const Color(0xffD32323),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -670,7 +670,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           _ciudadController.text,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: Color(0xff703eff),
+                            color: Color(0xffD32323),
                           ),
                         ),
                       ],
@@ -845,7 +845,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 50, color: const Color(0xff703eff).withOpacity(0.8)),
+        Icon(icon, size: 50, color: const Color(0xffD32323).withOpacity(0.8)),
         const SizedBox(height: 15),
         Text(
           title,
@@ -885,7 +885,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             hintText: 'Selecciona tu fecha de nacimiento',
             prefixIcon: const Icon(
               Icons.calendar_today,
-              color: Color(0xff703eff),
+              color: Color(0xffD32323),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -893,7 +893,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xff703eff), width: 2),
+              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
             ),
           ),
         ),
@@ -925,14 +925,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: const Color(0xff703eff)),
+            prefixIcon: Icon(icon, color: const Color(0xffD32323)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xff703eff), width: 2),
+              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
             ),
           ),
         ),
@@ -968,14 +968,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: const Color(0xff703eff)),
+            prefixIcon: Icon(icon, color: const Color(0xffD32323)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xff703eff), width: 2),
+              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
             ),
           ),
           isExpanded: true,
@@ -1011,7 +1011,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xff703eff), width: 2),
+              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
             ),
           ),
         ),
@@ -1026,7 +1026,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff703eff),
+          backgroundColor: const Color(0xffD32323),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1054,8 +1054,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: OutlinedButton(
                 onPressed: _previousPage,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xff703eff),
-                  side: const BorderSide(color: Color(0xff703eff)),
+                  foregroundColor: const Color(0xffD32323),
+                  side: const BorderSide(color: Color(0xffD32323)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1074,7 +1074,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: ElevatedButton(
               onPressed: onNext,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff703eff),
+                backgroundColor: const Color(0xffD32323),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1099,7 +1099,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: ElevatedButton(
         onPressed: _guardarPerfil,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff703eff),
+          backgroundColor: const Color(0xffD32323),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
