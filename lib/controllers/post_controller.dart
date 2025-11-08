@@ -14,53 +14,51 @@ class PostController {
     return _databaseService.getPosts();
   }
 
-  // Método para crear una publicación
-// Método para crear una publicación
+
+
   Future<void> createPost(String text, File? imageFile) async {
-   // 1. Obtener los datos del usuario actual
-   final userData = await _sharedPrefService.getAllUserData();
-   final String? userId = userData['userId'];
-   final String? userName = userData['displayName'];
-  final String? userImageUrl = userData['imageUrl'];
+    // 1. Obtener los datos del usuario actual
+    final userData = await _sharedPrefService.getAllUserData();
+     final String? userId = userData['userId'];
+    
+    // Aquí obtenemos ambas variables correctamente
+     final String? displayName = userData['displayName']; // ej: "Juan Perez"
+    final String? userName = userData['username']; // ej: "JUANPEREZ"
 
-   if (userId == null) return; // No se puede publicar si no hay usuario
+    final String? userImageUrl = userData['imageUrl'];
 
-  String? postImageUrl;
+     if (userId == null || userName == null) return; 
 
-  // 2. Subir la imagen (si existe)
-   if (imageFile != null) {
-      
-      // --- INICIO DE LA CORRECCIÓN ---
-
-   // 1. Creamos un nombre de archivo único
-   String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      
-      // 2. Creamos la ruta COMPLETA y ÚNICA (carpeta + nombre)
-   String uniquePath = "${AppConstants.postImagesPath}/$fileName";
-
-     postImageUrl = await _databaseService.uploadImage(
+    // ... (Tu lógica de subir imagen que ya corregimos está perfecta) ...
+    String? postImageUrl;
+     if (imageFile != null) {
+       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+       String uniquePath = "${AppConstants.postImagesPath}/$fileName";
+      postImageUrl = await _databaseService.uploadImage(
       imageFile,
-      customPath: uniquePath, // <-- 3. Pasamos la ruta única
+      customPath: uniquePath, 
    );
-      // --- FIN DE LA CORRECCIÓN ---
   }
 
   // 3. Crear el mapa de datos del post
      Map<String, dynamic> postData = {
       "text": text,
-      "imageUrl": postImageUrl,
+       "imageUrl": postImageUrl,
       "createdAt": FieldValue.serverTimestamp(),
       "userId": userId,
-      "userName": userName ?? "Usuario",
-      "userImageUrl": userImageUrl ?? "",
-      "likes": [], // Inicia con 0 likes
-      "commentCount": 0,
-      };
+      
+      // --- ¡ASEGÚRATE DE QUE ESTÉ ASÍ! ---
+      "userName": userName,            // <-- El campo "userName" recibe el apodo
+      "userDisplayName": displayName ?? "Usuario", // <-- El campo "userDisplayName" recibe el nombre
+      // ---------------------------------
 
- // 4. Llamar al servicio para crear el post
-     await _databaseService.createPost(postData);
-}
+    "userImageUrl": userImageUrl ?? "",
+    "likes": [], 
+     "commentCount": 0,
+ };
 
+  await _databaseService.createPost(postData);
+   }
   // Método para dar/quitar like
   Future<void> toggleLike(String postId, List<String> currentLikes) async {
     final String? myUserId = await _sharedPrefService.getUserId();
