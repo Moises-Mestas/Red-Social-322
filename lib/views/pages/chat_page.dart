@@ -292,7 +292,7 @@ class _ChatPageState extends State<ChatPage> {
 
     return Container(
       // 1. Este padding aplica el MARGEN DE PANTALLA (12px en ambos lados)
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4),
       child: Row(
         mainAxisAlignment:
             sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
