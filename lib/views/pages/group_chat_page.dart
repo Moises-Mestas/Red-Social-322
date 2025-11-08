@@ -1,6 +1,7 @@
 // lib/views/pages/group_chat_page.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_3/views/pages/group_info_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter_application_3/controllers/chat_controller.dart';
@@ -499,6 +500,21 @@ class _GroupChatPageState extends State<GroupChatPage> {
         title: Text(widget.groupName),
         centerTitle: true, // <-- TÍTULO CENTRADO
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // Navegar a la nueva página de información
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GroupInfoPage(
+                    groupId: widget.groupId,
+                    groupName: widget.groupName,
+                  ),
+                ),
+              );
+            },
+          ),
           if (!_isUserInGroup)
             IconButton(
               icon: const Icon(Icons.group_add),

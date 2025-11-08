@@ -12,6 +12,7 @@ import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:flutter_application_3/views/widgets/chat_room_list_tile.dart';
 
 class HomePage extends StatefulWidget {
+
   const HomePage({super.key});
 
   @override
