@@ -25,36 +25,30 @@ class GruposPropiosPage extends StatefulWidget {
 class _GruposPropiosPageState extends State<GruposPropiosPage> {
   final TextEditingController _searchController = TextEditingController();
   final GroupController _groupController = GroupController();
-  final SharedPrefService _sharedPrefService = SharedPrefService(); // <-- AÑADIDO
+  final SharedPrefService _sharedPrefService = SharedPrefService(); 
 
   Stream? _groupsStream;
   File? _imageFile;
   List<DocumentSnapshot> _allGroups = [];
   List<DocumentSnapshot> _filteredGroups = [];
 
-  // --- AÑADIDO: Estado de la barra de navegación ---
-  int _selectedIndex = 3; // Esta es la pestaña 3
+  int _selectedIndex = 3; 
   String? _myUsername;
 
   @override
   void initState() {
     super.initState();
     _loadGroups();
-    _loadMyUsername(); // <-- AÑADIDO
+    _loadMyUsername();
   }
 
-  // --- AÑADIDO ---
   void _loadMyUsername() async {
     _myUsername = await _sharedPrefService.getUserName();
   }
 
-  // --- AÑADIDO: Lógica de navegación ---
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
-
-    if (index == 1 && _myUsername == null) {
-      return;
-    }
+    if (index == 1 && _myUsername == null) return;
 
     setState(() {
       _selectedIndex = index;
@@ -109,7 +103,6 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
         break;
     }
   }
-  // ------------------------------------
 
   void _loadGroups() async {
     _groupsStream = _groupController.getAllGroups();
@@ -175,7 +168,6 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            // CÓDIGO CORREGIDO
             onPressed: () async {
               final navigator = Navigator.of(context);
               final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -210,98 +202,130 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // --- MODIFICADO: AppBar ---
-        automaticallyImplyLeading: false, // <-- No mostrar flecha de atrás
-        title: const Text(
-          "DESCUBRIR GRUPOS", // Título actualizado
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: const Color(0xffD32323), // Color rojo
-        elevation: 0,
-        // -------------------------
-        actions: [
-          // Botón para ir a "Mis Grupos"
-          TextButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GruposPage(),
-                ),
-              );
-            },
-            child: const Text(
-              "Mis Grupos", 
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)
-            ),
-          ),
-        ],
-      ),
+      // 1. Poner el color de fondo rojo al Scaffold
+      backgroundColor: const Color(0xffD32323),
+      
+      // 2. El body ahora es un Column
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
+          
+          // --- INICIO DEL NUEVO HEADER ---
+          Container(
+            // 3. Añadir padding superior manual para la barra de estado
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            height: 56 + MediaQuery.of(context).padding.top, // Altura + barra de estado
+            color: const Color(0xffD32323), // Color rojo
             child: Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _searchGroups,
-                    decoration: const InputDecoration(
-                      hintText: 'Buscar grupos públicos...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                _buildHeaderButton(
+                  text: 'MIS GRUPOS',
+                  isSelected: false, // "Mis Grupos" no está activo
+                  onTap: () {
+                    // Navegar a GruposPage
+                    Navigator.pushReplacement(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, a, b) => const GruposPage(),
+                        transitionDuration: Duration.zero,
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: _createGroup,
+                // Línea vertical divisoria
+                Container(
+                  width: 1,
+                  height: 30, // Altura de la línea
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                _buildHeaderButton(
+                  text: 'DESCUBRIR',
+                  isSelected: true, // Esta página es "Descubrir"
+                  onTap: () {
+                    // Ya estamos aquí, no hacer nada
+                  },
                 ),
               ],
             ),
           ),
+          // --- FIN DEL NUEVO HEADER ---
+          
+          // --- INICIO DEL CONTENIDO ---
           Expanded(
-            child: StreamBuilder(
-              stream: _groupsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: Container(
+              // 4. Contenedor blanco para el resto del contenido
+              width: MediaQuery.of(context).size.width,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    // 5. Padding para la barra de búsqueda
+                    padding: const EdgeInsets.fromLTRB(10, 20, 10, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _searchGroups,
+                            decoration: const InputDecoration(
+                              hintText: 'Buscar grupos públicos...',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _createGroup,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: StreamBuilder(
+                      stream: _groupsStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
-                  return const Center(child: Text("No hay grupos disponibles"));
-                }
+                        if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
+                          return const Center(child: Text("No hay grupos disponibles"));
+                        }
+                        
+                        if (_searchController.text.isEmpty) {
+                          _allGroups = snapshot.data.docs;
+                          _filteredGroups = _allGroups;
+                        } else {
+                           _allGroups = snapshot.data.docs;
+                           _searchGroups(_searchController.text);
+                        }
 
-                // Lógica de filtro (ya estaba bien)
-                if (_searchController.text.isEmpty) {
-                  _allGroups = snapshot.data.docs;
-                  _filteredGroups = _allGroups;
-                } else {
-                   _allGroups = snapshot.data.docs;
-                   _searchGroups(_searchController.text);
-                }
-
-
-                return ListView.builder(
-                  itemCount: _filteredGroups.length,
-                  itemBuilder: (context, index) {
-                    DocumentSnapshot ds = _filteredGroups[index];
-                    return _buildGroupTile(ds);
-                  },
-                );
-              },
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          itemCount: _filteredGroups.length,
+                          itemBuilder: (context, index) {
+                            DocumentSnapshot ds = _filteredGroups[index];
+                            return _buildGroupTile(ds);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+          // --- FIN DEL CONTENIDO ---
         ],
       ),
 
-      // --- BARRA DE NAVEGACIÓN AÑADIDA ---
+      // --- BARRA DE NAVEGACIÓN (Sin cambios) ---
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xffD32323),
         type: BottomNavigationBarType.fixed,
@@ -335,9 +359,47 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
           ),
         ],
       ),
-      // --- FIN DE LA BARRA ---
     );
   }
+
+  // --- WIDGET NUEVO PARA LOS BOTONES DEL HEADER ---
+  Widget _buildHeaderButton({
+    required String text,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          color: const Color(0xffD32323),
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    width: 3.0,
+                  ),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  // ---------------------------------------------
 
   Widget _buildGroupTile(DocumentSnapshot ds) {
     return GestureDetector(

@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/views/pages/group_chat_page.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter_application_3/controllers/group_controller.dart';
@@ -10,7 +11,6 @@ import 'package:flutter_application_3/views/pages/grupos_propios_page.dart';
 // --- Imports añadidos para la barra de navegación ---
 import 'package:flutter_application_3/services/shared_pref_service.dart';
 import 'package:flutter_application_3/views/pages/principal_page.dart';
-import 'package:flutter_application_3/views/pages/home_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
 import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 // ----------------------------------------------------
@@ -25,36 +25,30 @@ class GruposPage extends StatefulWidget {
 class _GruposPageState extends State<GruposPage> {
   final TextEditingController _searchController = TextEditingController();
   final GroupController _groupController = GroupController();
-  final SharedPrefService _sharedPrefService = SharedPrefService(); // <-- AÑADIDO
+  final SharedPrefService _sharedPrefService = SharedPrefService(); 
 
   Stream? _userGroupsStream;
   File? _imageFile;
   List<DocumentSnapshot> _userGroups = [];
   List<DocumentSnapshot> _filteredGroups = [];
 
-  // --- AÑADIDO: Estado de la barra de navegación ---
-  int _selectedIndex = 3; // Esta es la pestaña 3
+  int _selectedIndex = 3; 
   String? _myUsername;
 
   @override
   void initState() {
     super.initState();
     _loadUserGroups();
-    _loadMyUsername(); // <-- AÑADIDO
+    _loadMyUsername();
   }
 
-  // --- AÑADIDO ---
   void _loadMyUsername() async {
     _myUsername = await _sharedPrefService.getUserName();
   }
   
-  // --- AÑADIDO: Lógica de navegación ---
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
-
-    if (index == 1 && _myUsername == null) {
-      return;
-    }
+    if (index == 1 && _myUsername == null) return;
 
     setState(() {
       _selectedIndex = index;
@@ -109,7 +103,6 @@ class _GruposPageState extends State<GruposPage> {
         break;
     }
   }
-  // ------------------------------------
 
   void _loadUserGroups() async {
     _userGroupsStream = await _groupController.getUserGroups();
@@ -175,7 +168,6 @@ class _GruposPageState extends State<GruposPage> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            // CÓDIGO CORREGIDO
             onPressed: () async {
               final navigator = Navigator.of(context);
               final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -207,101 +199,135 @@ class _GruposPageState extends State<GruposPage> {
     );
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // --- MODIFICADO: AppBar ---
-        automaticallyImplyLeading: false, // <-- No mostrar flecha de atrás
-        title: const Text(
-          "GRUPOS",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: const Color(0xffD32323), // Color rojo
-        elevation: 0,
-        // -------------------------
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GruposPropiosPage(),
-                ),
-              );
-            },
-            child: const Text(
-              "Descubrir",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), // Color cambiado a blanco
-            ),
-          ),
-        ],
-      ),
+      // 1. Poner el color de fondo rojo al Scaffold
+      backgroundColor: const Color(0xffD32323),
+      
+      // 2. El body ahora es un Column
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
+          
+          // --- INICIO DEL NUEVO HEADER ---
+          Container(
+            // 3. Añadir padding superior manual para la barra de estado
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            height: 56 + MediaQuery.of(context).padding.top, // Altura + barra de estado
+            color: const Color(0xffD32323), // Color rojo
             child: Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _searchGroups,
-                    decoration: const InputDecoration(
-                      hintText: 'Buscar en mis grupos...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                _buildHeaderButton(
+                  text: 'MIS GRUPOS',
+                  isSelected: true, // Esta página es "Mis Grupos"
+                  onTap: () {
+                    // Ya estamos aquí, no hacer nada
+                  },
                 ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: _createGroup,
+                // Línea vertical divisoria
+                Container(
+                  width: 4,
+                  height: 38, // Altura de la línea
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                _buildHeaderButton(
+                  text: 'DESCUBRIR',
+                  isSelected: false,
+                  onTap: () {
+                    // Navegar a GruposPropiosPage
+                    Navigator.pushReplacement(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, a, b) => const GruposPropiosPage(),
+                        transitionDuration: Duration.zero,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
+          // --- FIN DEL NUEVO HEADER ---
+          
+          // --- INICIO DEL CONTENIDO ---
           Expanded(
-            child: StreamBuilder(
-              stream: _userGroupsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: Container(
+              // 4. Contenedor blanco para el resto del contenido
+              width: MediaQuery.of(context).size.width, // Asegura que ocupe todo el ancho
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    // 5. Padding para la barra de búsqueda
+                    padding: const EdgeInsets.fromLTRB(10, 20, 10, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _searchGroups,
+                            decoration: const InputDecoration(
+                              hintText: 'Buscar en mis grupos...',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _createGroup,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: StreamBuilder(
+                      stream: _userGroupsStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
 
-                if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
-                  return const Center(child: Text("No estás en ningún grupo"));
-                }
-                
-                // Actualizamos la lista base solo si la búsqueda está vacía
-                if (_searchController.text.isEmpty) {
-                  _userGroups = snapshot.data.docs;
-                  _filteredGroups = _userGroups;
-                } else {
-                  // Si estamos buscando, actualizamos la base y refiltramos
-                   _userGroups = snapshot.data.docs;
-                   _searchGroups(_searchController.text);
-                }
+                        if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
+                          return const Center(child: Text("No estás en ningún grupo"));
+                        }
+                        
+                        if (_searchController.text.isEmpty) {
+                          _userGroups = snapshot.data.docs;
+                          _filteredGroups = _userGroups;
+                        } else {
+                           _userGroups = snapshot.data.docs;
+                           _searchGroups(_searchController.text);
+                        }
 
 
-                return ListView.builder(
-                  itemCount: _filteredGroups.length,
-                  itemBuilder: (context, index) {
-                    DocumentSnapshot ds = _filteredGroups[index];
-                    return _buildGroupTile(ds);
-                  },
-                );
-              },
+                        return ListView.builder(
+                          // Añadimos padding para que la lista no pegue a los lados
+                          padding: const EdgeInsets.symmetric(horizontal: 10), 
+                          itemCount: _filteredGroups.length,
+                          itemBuilder: (context, index) {
+                            DocumentSnapshot ds = _filteredGroups[index];
+                            return _buildGroupTile(ds);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+          // --- FIN DEL CONTENIDO ---
         ],
       ),
 
-      // --- BARRA DE NAVEGACIÓN AÑADIDA ---
+      // --- BARRA DE NAVEGACIÓN (Sin cambios) ---
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xffD32323),
         type: BottomNavigationBarType.fixed,
@@ -335,7 +361,47 @@ class _GruposPageState extends State<GruposPage> {
           ),
         ],
       ),
-      // --- FIN DE LA BARRA ---
+    );
+  }
+
+  // --- WIDGET NUEVO PARA LOS BOTONES DEL HEADER ---
+  Widget _buildHeaderButton({
+    required String text,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          // El color es sólido (rojo) para ambos
+          color: const Color(0xffD32323),
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              // El borde inferior resalta la pestaña activa
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    width: 3.0, // Grosor del indicador
+                  ),
+                ),
+              ),
+              // Padding para el texto
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16, // Mismo tamaño de letra
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
