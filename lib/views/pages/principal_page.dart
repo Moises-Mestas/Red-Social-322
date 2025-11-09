@@ -7,7 +7,9 @@ import 'package:flutter_application_3/models/comment_model.dart';
 import 'package:flutter_application_3/models/post_model.dart';
 import 'package:flutter_application_3/services/database_service.dart'; 
 import 'package:flutter_application_3/services/shared_pref_service.dart';
-import 'package:flutter_application_3/views/pages/home_page.dart'; // <-- 1. IMPORTAR HOME PAGE
+import 'package:flutter_application_3/views/pages/grupos_page.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart';
+import 'package:flutter_application_3/views/pages/profile_page.dart';
 import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -25,6 +27,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   final ImagePicker _picker = ImagePicker();
 
   String? _myUserId;
+  String? _myUsername; 
   File? _imageToPost;
   final TextEditingController _textController = TextEditingController();
 
@@ -33,6 +36,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
   bool _search = false;
   List<Map<String, dynamic>> _tempSearchStore = [];
   String _lastSearchKey = "";
+
+  int _selectedIndex = 0; 
 
   @override
   void initState() {
@@ -43,7 +48,68 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
   void _loadMyUserId() async {
     _myUserId = await _sharedPrefService.getUserId();
+    _myUsername = await _sharedPrefService.getUserName();
     setState(() {});
+  }
+
+  void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
+
+    if (index == 1 && _myUsername == null) {
+        return; 
+    }
+    
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Muro Principal (Esta página)
+         Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const PrincipalPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1: // Mi Perfil (UserProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => UserProfilePage(username: _myUsername!),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2: // Chats (HomePage)
+         Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const HomePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3: // Grupos
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const GruposPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 4: // Ajustes (ProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const ProfilePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+    }
   }
 
   void _initializeSearch(String value) {
@@ -168,28 +234,35 @@ class _PrincipalPageState extends State<PrincipalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
+      // --- INICIO DE LA MODIFICACIÓN DEL APPBAR ---
       appBar: AppBar(
-        // --- INICIO DE LA MODIFICACIÓN ---
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             // Navega (reemplazando) de vuelta a HomePage
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
+              PageRouteBuilder(
+                pageBuilder: (context, a, b) => const HomePage(),
+                transitionDuration: Duration.zero,
+              ),
             );
           },
         ),
-        // --- FIN DE LA MODIFICACIÓN ---
-        title: const Text('Mi Muro'),
-        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+        title: const Text(
+          'MI MURO', // Texto en mayúsculas
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold, // Texto en negrita
+          ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true, // Título centrado
+        backgroundColor: const Color(0xffD32323), // Color de fondo rojo
+        elevation: 0, // Opcional: quitar sombra
       ),
+      // --- FIN DE LA MODIFICACIÓN DEL APPBAR ---
+
       body: Column(
         children: [
           Container(
@@ -225,10 +298,47 @@ class _PrincipalPageState extends State<PrincipalPage> {
           ),
         ],
       ),
+      
+      // --- MODIFICACIÓN DEL BOTÓN FLOTANTE ---
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreatePostModal,
-        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+        backgroundColor: const Color(0xffD32323), // Color rojo
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+      // --- FIN DE LA MODIFICACIÓN ---
+
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xffD32323), 
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.5),
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Muro',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble),
+            label: 'Chats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Ajustes',
+          ),
+        ],
       ),
     );
   }
@@ -367,9 +477,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
       ),
     );
   }
-
-  // ... (El resto del archivo: _showCreatePostModal, _showCommentsModal, y _CommentsModalContent no cambian) ...
   
+  // --- MODIFICACIÓN DEL MODAL ---
   void _showCreatePostModal() {
     _textController.clear();
     setState(() {
@@ -379,78 +488,87 @@ class _PrincipalPageState extends State<PrincipalPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, 
+      backgroundColor: Colors.transparent, // Fondo transparente para ver el margen
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalSetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 20,
+            // 1. Contenedor con margen
+            return Container(
+              margin: const EdgeInsets.fromLTRB(10, 20, 10, 60), // <-- Sube el modal 
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20), // Bordes redondeados
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text("Crear Publicación", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  TextField(
-                    controller: _textController,
-                    decoration: const InputDecoration(
-                      hintText: "¿Qué estás pensando?",
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 4,
-                  ),
-                  const SizedBox(height: 10),
-                  
-                  if (_imageToPost != null)
-                    Image.file(
-                      _imageToPost!,
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.image),
-                        label: const Text("Adjuntar Imagen"),
-                        onPressed: () async {
-                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-                          if (image != null) {
-                            modalSetState(() {
-                              _imageToPost = File(image.path);
-                            });
-                          }
-                        },
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Crear Publicación", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: _textController,
+                      decoration: const InputDecoration(
+                        hintText: "¿Qué estás pensando?",
+                        border: OutlineInputBorder(),
                       ),
-                      ElevatedButton(
-                        child: const Text("Publicar"),
-                        onPressed: () async {
-                          if (_textController.text.isEmpty && _imageToPost == null) {
-                            return;
-                          }
-                          
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Publicando..."))
-                          );
-                          
-                          await _postController.createPost(
-                            _textController.text,
-                            _imageToPost,
-                          );
-                          
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        },
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    if (_imageToPost != null)
+                      Image.file(
+                        _imageToPost!,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton.icon(
+                          icon: const Icon(Icons.image),
+                          label: const Text("Adjuntar Imagen"),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                            if (image != null) {
+                              modalSetState(() {
+                                _imageToPost = File(image.path);
+                              });
+                            }
+                          },
+                        ),
+                        ElevatedButton(
+                          child: const Text("Publicar"),
+                          onPressed: () async {
+                            if (_textController.text.isEmpty && _imageToPost == null) {
+                              return;
+                            }
+                            
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Publicando..."))
+                            );
+                            
+                            await _postController.createPost(
+                              _textController.text,
+                              _imageToPost,
+                            );
+                            
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             );
           },
@@ -458,6 +576,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       },
     );
   }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   void _showCommentsModal(BuildContext context, String postId) {
     showModalBottomSheet(
@@ -784,7 +903,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send, color: Color.fromARGB(255, 79, 191, 219)),
+                icon: const Icon(Icons.send, color: Color(0xffD32323)),
                 onPressed: _sendComment,
               ),
             ],

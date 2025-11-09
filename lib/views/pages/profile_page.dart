@@ -1,9 +1,18 @@
+// lib/views/pages/profile_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/controllers/auth_controller.dart';
 import 'package:flutter_application_3/controllers/profile_controller.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
 import 'package:flutter_application_3/views/pages/login.dart';
-import 'package:flutter_application_3/views/pages/onboarding_page.dart';
+
+// --- AÑADIDOS IMPORTS PARA NAVEGACIÓN ---
+import 'package:flutter_application_3/views/pages/principal_page.dart';
+import 'package:flutter_application_3/views/pages/user_profile_page.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart';
+import 'package:flutter_application_3/views/pages/grupos_page.dart';
+// ----------------------------------------
+
 import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -25,6 +34,58 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isEditing = false;
   bool _isLoading = false;
 
+  // --- AÑADIDO: LÓGICA DE NAVEGACIÓN ---
+  void _onItemTapped(int index, String? myUsername) {
+    // El índice 4 es esta página (Ajustes), no hacemos nada.
+    if (index == 4) return;
+
+    // Protección por si el username aún no ha cargado
+    if (index == 1 && myUsername == null) {
+      return; 
+    }
+
+    // Usamos pushReplacement para una navegación limpia
+    switch (index) {
+      case 0: // Muro Principal
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const PrincipalPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1: // Mi Perfil (UserProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => UserProfilePage(username: myUsername!),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2: // Chats (HomePage)
+         Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const HomePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3: // Grupos
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const GruposPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+    }
+  }
+  // --- FIN DE LÓGICA DE NAVEGACIÓN ---
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +105,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void _loadUserData(Map<String, dynamic> userData) {
     _nameController.text = userData['displayName'] ?? '';
     _usernameController.text = userData['username'] ?? '';
-    _emailController.text = userData['Email'] ?? '';
+    // Corregido: 'Email' viene de 'users', no de 'getAllUserData'
+    _emailController.text = userData['email'] ?? userData['Email'] ?? '';
   }
 
   Future<void> _updateProfile() async {
@@ -83,8 +145,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         );
 
-        // Recargar la página para mostrar los datos actualizados
-        setState(() {});
+        setState(() {}); // Recargar la página
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,15 +262,17 @@ class _ProfilePageState extends State<ProfilePage> {
           "PERFIL",
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold, // Negrita
+            fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xffD32323),
+        // Ocultar el botón de "atrás" automático
+        automaticallyImplyLeading: false,
         actions: [
           if (!_isEditing)
             Padding(
-              padding: const EdgeInsets.only(right: 10.0), // Mover a la izquierda
+              padding: const EdgeInsets.only(right: 10.0),
               child: IconButton(
                 icon: const Icon(
                   Icons.edit,
@@ -225,7 +288,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           if (_isEditing)
             Padding(
-              padding: const EdgeInsets.only(right: 10.0), // Mover a la izquierda
+              padding: const EdgeInsets.only(right: 10.0),
               child: IconButton(
                 icon: const Icon(
                   Icons.close,
@@ -276,7 +339,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(100),
                             border: Border.all(
-                              color: const Color.fromARGB(255, 79, 191, 219),
+                              color: const Color(0xffD32323), // Color rojo
                               width: 5,
                             ),
                             boxShadow: [
@@ -333,11 +396,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                       const SizedBox(height: 30),
-                      // Campos editables
                       _buildEditableField(
                         'Email:',
                         _emailController,
-                        isEditable: false, // El email no se puede editar
+                        isEditable: false,
                       ),
                       const SizedBox(height: 20),
                       _buildEditableField(
@@ -352,8 +414,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         isEditable: _isEditing,
                       ),
                       const SizedBox(height: 30),
-
-                      // Botón de guardar cambios
                       if (_isEditing)
                         GestureDetector(
                           onTap: _updateProfile,
@@ -427,10 +487,45 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
+      
+      // --- AÑADIDA LA BARRA DE NAVEGACIÓN ---
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xffD32323),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.5),
+        currentIndex: 4, // <-- Índice 4 para Ajustes
+        onTap: (index) => _onItemTapped(index, userData?['username']),
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Muro',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble),
+            label: 'Chats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Ajustes',
+          ),
+        ],
+      ),
+      // --- FIN DE LA BARRA DE NAVEGACIÓN ---
     );
   }
 
-  // Método para crear campos editables
   Widget _buildEditableField(
     String title,
     TextEditingController controller, {
@@ -444,7 +539,7 @@ class _ProfilePageState extends State<ProfilePage> {
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xffD32323),
+            color: Color(0xffD32323), // Color rojo
           ),
         ),
         const SizedBox(height: 5),
@@ -453,7 +548,7 @@ class _ProfilePageState extends State<ProfilePage> {
           decoration: BoxDecoration(
             color: isEditable ? Colors.white : Colors.grey[200],
             borderRadius: BorderRadius.circular(15),
-            border: isEditable ? Border.all(color: Colors.red) : null,
+            border: isEditable ? Border.all(color: Colors.red) : null, // Borde rojo
           ),
           child: isEditable
               ? TextField(
@@ -473,13 +568,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Método para obtener los datos del usuario
   Future<Map<String, dynamic>> _getUserData() async {
     final userData = await _sharedPrefService.getAllUserData();
 
+    // Corregido: 'email' (minúscula) es la clave correcta de SharedPreferences
     return {
       'displayName': userData['displayName'],
-      'Email': userData['Email'], 
+      'email': userData['email'], 
       'username': userData['username'],
       'imageUrl': userData['imageUrl'],
     };
