@@ -1,3 +1,4 @@
+// lib/controllers/followers_controller.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_3/services/database_service.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
@@ -13,6 +14,14 @@ class FollowersController {
       final currentUserId = await _sharedPrefService.getUserId();
       if (currentUserId == null) throw Exception("Usuario no autenticado");
 
+      // --- INICIO DE LA MODIFICACIÓN ---
+      // 1. Obtenemos los datos del USUARIO ACTUAL (quien está siguiendo)
+      final currentUsername = await _sharedPrefService.getUserName() ?? 'usuario';
+      final currentUserImage = await _sharedPrefService.getUserImage() ?? '';
+      // --- FIN DE LA MODIFICACIÓN ---
+
+
+      // 2. Añadir a la lista de "Siguiendo" (Following) del usuario actual
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(currentUserId)
@@ -22,8 +31,11 @@ class FollowersController {
             'userId': targetUserId,
             'username': targetUsername,
             'followedAt': DateTime.now(),
+            // Opcional: También podrías guardar la foto del usuario al que sigues
+            // 'userImageUrl': targetUserImage (necesitarías obtenerla primero)
           });
 
+      // 3. Añadir a la lista de "Seguidores" (Followers) del usuario objetivo
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(targetUserId)
@@ -31,15 +43,17 @@ class FollowersController {
           .doc(currentUserId)
           .set({
             'userId': currentUserId,
-            'username': await _sharedPrefService.getUserName() ?? 'usuario',
+            'username': currentUsername, // <-- Usamos la variable
+            'userImageUrl': currentUserImage, // <-- ¡AQUÍ GUARDAMOS LA FOTO!
             'followedAt': DateTime.now(),
           });
 
-      // 3. Crear notificación
+      // 4. Crear notificación (optimizada)
       await _createFollowNotification(
         currentUserId,
         targetUserId,
-        targetUsername,
+        currentUsername, // <-- Pasamos el nombre que ya obtuvimos
+        currentUserImage, // <-- Pasamos la imagen que ya obtuvimos
       );
     } catch (e) {
       throw Exception("Error al seguir usuario: $e");
@@ -133,15 +147,14 @@ class FollowersController {
         .snapshots();
   }
 
+  // --- MODIFICADO: Acepta los parámetros que ya obtuvimos ---
   Future<void> _createFollowNotification(
     String currentUserId,
     String targetUserId,
-    String targetUsername,
+    String currentUsername, // <-- Parámetro
+    String currentUserImage, // <-- Parámetro
   ) async {
     try {
-      final currentUsername = await _sharedPrefService.getUserName();
-      final currentUserImage = await _sharedPrefService.getUserImage();
-
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(targetUserId)

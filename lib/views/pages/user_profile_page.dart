@@ -15,6 +15,8 @@ import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
 // --- Import AÑADIDO para la edición ---
 import 'package:flutter_application_3/views/pages/edit_profile_page.dart';
+// --- AÑADIDO IMPORT (NUEVO) ---
+import 'package:flutter_application_3/views/widgets/followers_list_dialog.dart';
 // ----------------------------------------------------
 
 class UserProfilePage extends StatefulWidget {
@@ -332,7 +334,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  // --- REEMPLAZADO: _buildBio con la versión del Código 2 ---
   String _buildBio() {
     String bio = '';
 
@@ -403,6 +404,23 @@ class _UserProfilePageState extends State<UserProfilePage> {
     return Wrap(spacing: 8, runSpacing: 8, children: additionalInfo);
   }
 
+  // --- AÑADIDO: Método para mostrar el diálogo ---
+  void _showFollowList(bool isFollowers) {
+    if (_userId == null) return; // No hacer nada si no hay ID
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return FollowersListDialog(
+          userId: _userId!,
+          isFollowers: isFollowers,
+          followController: _followController,
+        );
+      },
+    );
+  }
+  // ---------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -422,7 +440,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // --- TU APPBAR MEJORADO (DEL CÓDIGO 1) ---
+      // --- TU APPBAR MEJORADO (CON GRADIENTE ROJO) ---
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -439,7 +457,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         centerTitle: true,
         backgroundColor:
             Colors.transparent, // Color base transparente para el gradiente
-        elevation: 0, // Se ajustó a 0 en el Código 2, mantenemos eso
+        elevation: 0,
         titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 22,
@@ -497,9 +515,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
+                              // --- MODIFICADO: _buildStatItem ahora es clickeable ---
                               _buildStatItem(_postsCount, 'Publicaciones'),
-                              _buildStatItem(_followersCount, 'Seguidores'),
-                              _buildStatItem(_followingCount, 'Siguiendo'),
+                              GestureDetector(
+                                onTap: () => _showFollowList(true), // true = Seguidores
+                                child: _buildStatItem(_followersCount, 'Seguidores'),
+                              ),
+                              GestureDetector(
+                                onTap: () => _showFollowList(false), // false = Siguiendo
+                                child: _buildStatItem(_followingCount, 'Siguiendo'),
+                              ),
+                              // ----------------------------------------------------
                             ],
                           ),
                         ),
@@ -534,13 +560,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
                     const SizedBox(height: 16),
 
-                    // --- INICIO DE LA MODIFICACIÓN (Lógica del Código 2) ---
-                    // Si es mi perfil, muestro "Editar", si no, muestro "Seguir/Mensaje"
+                    // BOTONES (Lógica de "Editar Perfil" vs "Seguir")
                     if (_isMyProfile)
-                      _buildEditProfileButton() // <-- Nuevo widget
+                      _buildEditProfileButton()
                     else
-                      _buildActionButtons(), // <-- Tu widget antiguo
-                    // --- FIN DE LA MODIFICACIÓN ---
+                      _buildActionButtons(),
                   ],
                 ),
               ),
@@ -553,7 +577,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         ),
       ),
 
-      // --- TU BARRA DE NAVEGACIÓN (DEL CÓDIGO 1) ---
+      // --- BARRA DE NAVEGACIÓN ---
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
         type: BottomNavigationBarType.fixed,
@@ -607,7 +631,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  // --- WIDGET NUEVO AÑADIDO (DEL CÓDIGO 2) ---
+  // --- WIDGET "EDITAR PERFIL" ---
   Widget _buildEditProfileButton() {
     // Este widget reemplaza _buildActionButtons cuando es mi perfil
     return Row(
@@ -647,7 +671,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ],
     );
   }
-  // --- FIN DEL WIDGET NUEVO ---
+  // --- FIN DEL WIDGET ---
 
   Widget _buildActionButtons() {
     return Row(
