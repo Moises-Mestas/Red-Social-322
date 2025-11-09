@@ -350,7 +350,7 @@ class _ChatPageState extends State<ChatPage> {
                 // GLOBO DEL MENSAJE
                 Container(
                   decoration: BoxDecoration(
-                    color: sendByMe ? Colors.black45 : Colors.blue,
+                    color: sendByMe ? const Color.fromARGB(209, 134, 56, 42) : const Color(0xffD32323),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
                       bottomRight: sendByMe
@@ -394,7 +394,7 @@ class _ChatPageState extends State<ChatPage> {
                     timestamp,
                     style: const TextStyle(
                       color: Colors.grey,
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -583,7 +583,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+      backgroundColor: const Color(0xffD32323),
       body: Container(
         margin: const EdgeInsets.only(top: 40.0),
         child: Column(
@@ -659,7 +659,7 @@ class _ChatPageState extends State<ChatPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color.fromARGB(255, 79, 191, 219),
+                                    color: const Color(0xffD32323),
                                     borderRadius: BorderRadius.circular(60),
                                   ),
                                   child: const Icon(
@@ -691,7 +691,7 @@ class _ChatPageState extends State<ChatPage> {
                                       suffixIcon: IconButton(
                                         icon: const Icon(
                                           Icons.attach_file,
-                                          color: Color.fromARGB(255, 79, 191, 219),
+                                          color: Color(0xffD32323),
                                         ),
                                         onPressed: _getImage,
                                         tooltip: 'Adjuntar imagen',
@@ -706,7 +706,7 @@ class _ChatPageState extends State<ChatPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color.fromARGB(255, 79, 191, 219),
+                                    color: const Color(0xffD32323),
                                     borderRadius: BorderRadius.circular(60),
                                   ),
                                   child: const Icon(

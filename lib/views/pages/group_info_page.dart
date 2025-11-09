@@ -329,7 +329,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
           padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             'Creador',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xffD32323)),
           ),
         ),
         ListTile(

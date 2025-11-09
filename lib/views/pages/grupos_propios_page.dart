@@ -1,3 +1,4 @@
+// lib/views/pages/grupos_propios_page.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/views/pages/group_chat_page.dart';
@@ -5,6 +6,14 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter_application_3/controllers/group_controller.dart';
 import 'package:flutter_application_3/views/pages/grupos_page.dart';
+
+// --- Imports añadidos para la barra de navegación ---
+import 'package:flutter_application_3/services/shared_pref_service.dart';
+import 'package:flutter_application_3/views/pages/principal_page.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart';
+import 'package:flutter_application_3/views/pages/profile_page.dart';
+import 'package:flutter_application_3/views/pages/user_profile_page.dart';
+// ----------------------------------------------------
 
 class GruposPropiosPage extends StatefulWidget {
   const GruposPropiosPage({super.key});
@@ -16,17 +25,91 @@ class GruposPropiosPage extends StatefulWidget {
 class _GruposPropiosPageState extends State<GruposPropiosPage> {
   final TextEditingController _searchController = TextEditingController();
   final GroupController _groupController = GroupController();
+  final SharedPrefService _sharedPrefService = SharedPrefService(); // <-- AÑADIDO
 
   Stream? _groupsStream;
   File? _imageFile;
   List<DocumentSnapshot> _allGroups = [];
   List<DocumentSnapshot> _filteredGroups = [];
 
+  // --- AÑADIDO: Estado de la barra de navegación ---
+  int _selectedIndex = 3; // Esta es la pestaña 3
+  String? _myUsername;
+
   @override
   void initState() {
     super.initState();
     _loadGroups();
+    _loadMyUsername(); // <-- AÑADIDO
   }
+
+  // --- AÑADIDO ---
+  void _loadMyUsername() async {
+    _myUsername = await _sharedPrefService.getUserName();
+  }
+
+  // --- AÑADIDO: Lógica de navegación ---
+  void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
+
+    if (index == 1 && _myUsername == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Muro Principal
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const PrincipalPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1: // Mi Perfil (UserProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) =>
+                UserProfilePage(username: _myUsername!),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2: // Chats (HomePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const HomePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3: // Grupos
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const GruposPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 4: // Ajustes (ProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const ProfilePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+    }
+  }
+  // ------------------------------------
 
   void _loadGroups() async {
     _groupsStream = _groupController.getAllGroups();
@@ -92,39 +175,31 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-// CÓDIGO CORREGIDO
-          onPressed: () async {
-            // 1. Guardamos los objetos de contexto ANTES del 'await'
-            final navigator = Navigator.of(context);
-            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            // CÓDIGO CORREGIDO
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-            // 2. Comprobamos si el widget sigue "montado" (vivo)
-            if (!mounted) return; 
+              if (!mounted) return;
 
-            if (groupName != null && groupName!.isNotEmpty) {
+              if (groupName != null && groupName!.isNotEmpty) {
+                navigator.pop();
 
-              // 3. Cerramos el diálogo
-              navigator.pop();
-
-              // 4. Hacemos la llamada asíncrona
-              final groupId = await _groupController.createGroup(
-                groupName: groupName!,
-                imageFile: _imageFile,
-              );
-
-              if (groupId != null) {
-                // 5. Usamos el 'scaffoldMessenger' guardado (¡seguro!)
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('Grupo creado con id: $groupId')),
+                final groupId = await _groupController.createGroup(
+                  groupName: groupName!,
+                  imageFile: _imageFile,
                 );
 
-                // 6. Volvemos a comprobar si el widget sigue vivo antes de recargar
-                if (mounted) {
-                  _loadGroups(); // <-- La única línea diferente
+                if (groupId != null) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Grupo creado con id: $groupId')),
+                  );
+                  if (mounted) {
+                    _loadGroups();
+                  }
                 }
               }
-            }
-          },
+            },
             child: const Text('Crear'),
           ),
         ],
@@ -136,29 +211,34 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: TextButton(
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const GruposPage()),
-            );
-          },
-          child: const Text(
-            "Grupos",
-            style: TextStyle(color: Colors.black, fontSize: 20),
+        // --- MODIFICADO: AppBar ---
+        automaticallyImplyLeading: false, // <-- No mostrar flecha de atrás
+        title: const Text(
+          "DESCUBRIR GRUPOS", // Título actualizado
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
+        backgroundColor: const Color(0xffD32323), // Color rojo
+        elevation: 0,
+        // -------------------------
         actions: [
+          // Botón para ir a "Mis Grupos"
           TextButton(
             onPressed: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const GruposPropiosPage(),
+                  builder: (context) => const GruposPage(),
                 ),
               );
             },
-            child: const Text("Descubrir", style: TextStyle(color: Colors.red)),
+            child: const Text(
+              "Mis Grupos", 
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)
+            ),
           ),
         ],
       ),
@@ -173,7 +253,7 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
                     controller: _searchController,
                     onChanged: _searchGroups,
                     decoration: const InputDecoration(
-                      hintText: 'Buscar grupo...',
+                      hintText: 'Buscar grupos públicos...',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -198,10 +278,15 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
                   return const Center(child: Text("No hay grupos disponibles"));
                 }
 
-                if (_allGroups.isEmpty) {
+                // Lógica de filtro (ya estaba bien)
+                if (_searchController.text.isEmpty) {
                   _allGroups = snapshot.data.docs;
                   _filteredGroups = _allGroups;
+                } else {
+                   _allGroups = snapshot.data.docs;
+                   _searchGroups(_searchController.text);
                 }
+
 
                 return ListView.builder(
                   itemCount: _filteredGroups.length,
@@ -215,6 +300,42 @@ class _GruposPropiosPageState extends State<GruposPropiosPage> {
           ),
         ],
       ),
+
+      // --- BARRA DE NAVEGACIÓN AÑADIDA ---
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xffD32323),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.5),
+        currentIndex: _selectedIndex, // <-- 3
+        onTap: _onItemTapped,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Muro',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble),
+            label: 'Chats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Ajustes',
+          ),
+        ],
+      ),
+      // --- FIN DE LA BARRA ---
     );
   }
 

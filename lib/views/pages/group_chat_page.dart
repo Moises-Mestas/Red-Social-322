@@ -9,6 +9,12 @@ import 'package:flutter_application_3/controllers/group_controller.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart'; 
 import 'package:flutter_application_3/views/pages/user_profile_page.dart'; 
 
+// --- Imports para el grabador de audio (copiado de chat_page) ---
+import 'package:flutter_sound/public/flutter_sound_recorder.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+// -----------------------------------------------------------
+
 class GroupChatPage extends StatefulWidget {
   final String groupName, groupImageUrl, groupId;
 
@@ -32,7 +38,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Stream? _messageStream;
   String? _myUsername;
-  String? _myPicture; // <-- Variable para guardar tu foto
+  String? _myPicture;
   File? _selectedImage;
   bool _isUserInGroup = false;
 
@@ -40,15 +46,38 @@ class _GroupChatPageState extends State<GroupChatPage> {
   String? _replyToMessageText;
   String? _replyToMessageSenderApodo;
 
+  // --- Variables de audio (copiadas de chat_page) ---
+  bool _isRecording = false;
+  String? _filePath;
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  // --------------------------------------------------
+
   @override
   void initState() {
     super.initState();
     _initialize();
+    _initializeAudio(); // <-- AÑADIDO
+  }
+  
+  // --- MÉTODO AÑADIDO ---
+  Future<void> _initializeAudio() async {
+    await _recorder.openRecorder();
+    await _requestPermission();
+    var tempDir = await getTemporaryDirectory();
+    _filePath = '${tempDir.path}/audio.aac';
+  }
+
+  // --- MÉTODO AÑADIDO ---
+  Future<void> _requestPermission() async {
+    var status = await Permission.microphone.status;
+    if (!status.isGranted) {
+      await Permission.microphone.request();
+    }
   }
 
   Future<void> _initialize() async {
     await _getMyUsername();
-    await _getMyPicture(); // <-- Cargar tu foto al iniciar
+    await _getMyPicture();
     await _checkIfUserIsInGroup();
     _getMessages();
   }
@@ -58,7 +87,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
     setState(() {});
   }
 
-  // --- MÉTODO PARA OBTENER TU FOTO ---
   Future<void> _getMyPicture() async {
     _myPicture = await _sharedPrefService.getUserImage();
   }
@@ -94,7 +122,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       await _chatController.sendTextMessage(
         chatRoomId: widget.groupId,
         message: _messageController.text,
-        myPicture: _myPicture ?? '', // <-- ¡¡AQUÍ ESTÁ LA CORRECCIÓN!! (antes era '')
+        myPicture: _myPicture ?? '',
         isGroup: true,
         replyToMessageId: _replyToMessageId,
         replyToMessageText: _replyToMessageText,
@@ -123,7 +151,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     await _chatController.sendImageMessage(
       chatRoomId: widget.groupId,
       imageFile: _selectedImage!,
-      myPicture: _myPicture ?? '', // <-- ¡¡AQUÍ ESTÁ LA CORRECCIÓN!! (antes era '')
+      myPicture: _myPicture ?? '',
       isGroup: true,
       replyToMessageId: _replyToMessageId,
       replyToMessageText: _replyToMessageText,
@@ -132,11 +160,82 @@ class _GroupChatPageState extends State<GroupChatPage> {
     _cancelReply(); 
   }
 
+  // --- MÉTODOS DE AUDIO AÑADIDOS (copiados de chat_page) ---
+  Future<void> _startRecording() async {
+    await _recorder.startRecorder(toFile: _filePath);
+    setState(() {
+      _isRecording = true;
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    await _recorder.stopRecorder();
+    setState(() {
+      _isRecording = false;
+    });
+  }
+
+  
+      // ... (manejo de error)
+ 
+  
+  Future<void> _openRecordingDialog() => showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      content: SingleChildScrollView(
+        child: Column(
+          children: [
+            const Text(
+              "Nota de voz",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                if (_isRecording) {
+                  await _stopRecording();
+                } else {
+                  await _startRecording();
+                }
+              },
+              icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+              label: Text(
+                _isRecording ? 'Detener grabación' : 'Iniciar grabación',
+                style: const TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (!_isRecording) {
+                }
+              },
+              child: const Text(
+                'Subir Audio',
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  // --- FIN DE MÉTODOS DE AUDIO ---
+
   Future<void> _joinGroup() async {
     // ... (tu código no cambia) ...
   }
 
-  // --- WIDGET DE MENSAJE (Con márgenes simétricos) ---
+  // --- WIDGET DE MENSAJE (Con diseño y márgenes nuevos) ---
   Widget _chatMessageTile({
     required String message,
     required bool sendByMe,
@@ -149,7 +248,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
   }) {
     final type = dataType.toLowerCase();
 
-    // Widget para el contenido principal del mensaje
     Widget messageContent;
     if (type == "image") {
       messageContent = ClipRRect(
@@ -190,7 +288,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
     }
 
-    // Widget para el mensaje respondido (si existe)
     Widget replyWidget = const SizedBox.shrink();
     if (replyText != null && replySenderApodo != null) {
       replyWidget = Container(
@@ -229,12 +326,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
     }
     
-    const double avatarRadius = 22;
+    const double avatarRadius = 25; // <-- Radio más grande
     const double avatarPadding = 8;
-    const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding;
+    const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding; // <-- 58px
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4), // <-- Márgenes
       child: Row(
         mainAxisAlignment:
             sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -291,7 +388,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 // GLOBO DEL MENSAJE
                 Container(
                   decoration: BoxDecoration(
-                    color: sendByMe ? Colors.black45 : Colors.blue,
+                    // --- COLORES DE GLOBO MEMORIZADOS ---
+                    color: sendByMe ? const Color.fromARGB(209, 134, 56, 42) : const Color(0xffD32323),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
                       bottomRight: sendByMe
@@ -335,7 +433,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                     timestamp,
                     style: const TextStyle(
                       color: Colors.grey,
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -352,6 +450,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       ),
     );
   }
+
 
   Widget _buildMessageList() {
     return StreamBuilder(
@@ -401,7 +500,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 dataType: ds["Data"],
                 timestamp: ds["ts"] ?? "",
                 senderApodo: ds["sendBy"],
-                senderPicture: ds["imgUrl"] ?? "", // <-- ¡¡AQUÍ ESTÁ LA CORRECCIÓN!! (se lee ds["imgUrl"])
+                senderPicture: ds["imgUrl"] ?? "", 
                 replyText: replyText,
                 replySenderApodo: replySender,
               ),
@@ -454,6 +553,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
+  // --- WIDGET REDISEÑADO ---
   Widget _buildInputArea() {
     if (!_isUserInGroup) {
       return Container(
@@ -465,29 +565,77 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
     }
 
-    // El input de texto ahora está dentro del Column
-    // que también contiene el _buildReplyBanner
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
+    // Copiado de chat_page.dart
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24.0), // <-- Padding inferior
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12.0,
+        vertical: 10.0,
+      ),
       child: Row(
         children: [
           GestureDetector(
-            onTap: _getImage, // Debes implementar _getImage para chat grupal
-            child: const Icon(Icons.photo, color: Colors.blue),
+            onTap: _openRecordingDialog,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xffD32323),
+                borderRadius: BorderRadius.circular(60),
+              ),
+              child: const Icon(
+                Icons.mic,
+                size: 28.0,
+                color: Colors.white,
+              ),
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 10.0),
           Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: "Escribe un mensaje...",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFececf8),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: TextField(
+                controller: _messageController,
+                style: const TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: "Escribir un mensaje...",
+                  hintStyle: const TextStyle(
+                    color: Colors.black54,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.attach_file,
+                      color: Color(0xffD32323),
+                    ),
+                    onPressed: _getImage,
+                    tooltip: 'Adjuntar imagen',
+                  ),
                 ),
               ),
             ),
           ),
-          IconButton(icon: const Icon(Icons.send), onPressed: _sendMessage),
+          const SizedBox(width: 10.0),
+          GestureDetector(
+            onTap: _sendMessage,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xffD32323),
+                borderRadius: BorderRadius.circular(60),
+              ),
+              child: const Icon(
+                Icons.send,
+                size: 28.0,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -495,51 +643,67 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
 @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.groupName),
-        centerTitle: true,
-        actions: [
-          IconButton(
+  return Scaffold(
+  // --- DISEÑO DE APPBAR Y FONDO ACTUALIZADO ---
+   backgroundColor: const Color(0xffD32323),
+  appBar: AppBar(
+  title: Text(
+  	widget.groupName,
+        // --- INICIO DE LA MODIFICACIÓN ---
+  	style: const TextStyle(
+  		fontWeight: FontWeight.bold, // <-- AÑADIDO
+  	),
+        // --- FIN DE LA MODIFICACIÓN ---
+   ),
+      
+            centerTitle: true,
+            backgroundColor: const Color(0xffD32323), // Color rojo
+            foregroundColor: Colors.white, // Color de texto e iconos blanco
+            elevation: 0,
+            actions: [
+            IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GroupInfoPage(
-                    groupId: widget.groupId,
-                    groupName: widget.groupName,
-                  ),
-                ),
-              );
-            },
-          ),
-          if (!_isUserInGroup)
-            IconButton(
-              icon: const Icon(Icons.group_add),
-              onPressed: _joinGroup,
-              tooltip: 'Unirse al grupo',
+            Navigator.push(
+            context,
+            MaterialPageRoute(
+            builder: (context) => GroupInfoPage(
+            groupId: widget.groupId,
+            groupName: widget.groupName,
             ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(child: _buildMessageList()),
-          
-          // --- INICIO DE LA MODIFICACIÓN ---
-          // Envolvemos el área de input en un Padding
-          Padding(
-            // Añadimos 24 píxeles de espacio en la parte inferior
-            // (Puedes cambiar este valor si quieres más o menos espacio)
-            padding: const EdgeInsets.only(bottom: 60.0), 
-            child: Column(
+            ),
+            );
+            },
+            ),
+            if (!_isUserInGroup)
+            IconButton(
+            icon: const Icon(Icons.group_add),
+            onPressed: _joinGroup,
+            tooltip: 'Unirse al grupo',
+            ),
+            ],
+            ),
+      // --- FIN DE APPBAR ---
+
+      body: Container( // Añadido para que el fondo blanco no cubra el rojo
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(child: _buildMessageList()),
+            Column(
               children: [
                 _buildReplyBanner(),
                 _buildInputArea(),
               ],
-            ),
-          )
-        ],
+            )
+          ],
+        ),
       ),
     );
   }

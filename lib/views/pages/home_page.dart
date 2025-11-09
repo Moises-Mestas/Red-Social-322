@@ -4,6 +4,7 @@ import 'package:flutter_application_3/controllers/chat_controller.dart';
 import 'package:flutter_application_3/services/database_service.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
 import 'package:flutter_application_3/views/pages/chat_page.dart';
+import 'package:flutter_application_3/views/pages/edit_profile_page.dart';
 import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/principal_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';

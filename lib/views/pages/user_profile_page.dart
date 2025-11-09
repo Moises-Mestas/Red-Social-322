@@ -8,6 +8,13 @@ import 'package:flutter_application_3/services/shared_pref_service.dart';
 import 'package:flutter_application_3/core/constants/app_constants.dart';
 import 'package:flutter_application_3/views/pages/chat_page.dart';
 
+// --- Imports añadidos para la barra de navegación ---
+import 'package:flutter_application_3/views/pages/principal_page.dart';
+import 'package:flutter_application_3/views/pages/home_page.dart';
+import 'package:flutter_application_3/views/pages/grupos_page.dart';
+import 'package:flutter_application_3/views/pages/profile_page.dart';
+// ----------------------------------------------------
+
 class UserProfilePage extends StatefulWidget {
   final String username;
 
@@ -25,7 +32,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Map<String, dynamic> _userData = {};
   Map<String, dynamic> _userProfileData = {};
-  String? _userId;
+  String? _userId; // ID del perfil que se está viendo
+  String? _myUsername; // Mi propio apodo (para la barra de nav)
   int _followersCount = 0;
   int _followingCount = 0;
   int _postsCount = 0;
@@ -34,11 +42,95 @@ class _UserProfilePageState extends State<UserProfilePage> {
   int _selectedTab = 0;
   bool _isSendingMessage = false;
 
+  // --- AÑADIDO: Estado de la barra de navegación ---
+  int _selectedIndex = 1; // Esta es la pestaña 1 (Perfil) por defecto
+
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _checkIfThisIsMyProfile(); // <-- Comprobar si estoy viendo mi propio perfil
   }
+
+  // --- AÑADIDO: Comprobar si el perfil que se visita es el mío ---
+  Future<void> _checkIfThisIsMyProfile() async {
+    _myUsername = await _sharedPrefService.getUserName();
+    if (widget.username == _myUsername) {
+      setState(() {
+        _selectedIndex = 1; // Si es mi perfil, el ícono 1 está activo
+      });
+    } else {
+      // No es mi perfil, ningún ícono de perfil está activo
+      setState(() {
+        _selectedIndex = -1; // -1 para que no se seleccione nada
+      });
+    }
+  }
+  // -----------------------------------------------------------
+
+  // --- AÑADIDO: Lógica de navegación ---
+  void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
+
+    if (index == 1 && _myUsername == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Muro Principal
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const PrincipalPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 1: // Mi Perfil (UserProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            // Navega a MI PROPIO perfil
+            pageBuilder: (context, a, b) =>
+                UserProfilePage(username: _myUsername!),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 2: // Chats (HomePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const HomePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3: // Grupos
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const GruposPage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 4: // Ajustes (ProfilePage)
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, a, b) => const ProfilePage(),
+            transitionDuration: Duration.zero,
+          ),
+        );
+        break;
+    }
+  }
+  // ------------------------------------
 
   Future<void> _loadUserProfile() async {
     try {
@@ -64,7 +156,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
           // Verificar si el usuario actual sigue a este usuario
           final currentUserId = await _sharedPrefService.getUserId();
-          if (currentUserId != null) {
+          if (currentUserId != null && currentUserId != _userId) {
+            // <-- No comprobar si es mi propio perfil
             _isFollowing = await _followController.isFollowing(_userId!);
           }
         }
@@ -81,7 +174,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _isLoading = false;
       });
 
-      // Mostrar error al usuario
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -322,17 +414,58 @@ class _UserProfilePageState extends State<UserProfilePage> {
       );
     }
 
-    return Scaffold(
+return Scaffold(
       backgroundColor: Colors.white,
+      
+      // --- 👇 AQUÍ COMIENZA EL APPBAR MEJORADO Y CORREGIDO 👇 ---
       appBar: AppBar(
+        // 1. Botón de retroceso que lleva a HomePage
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // Navega (reemplazando) de vuelta a HomePage (pestaña 2)
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage(initialIndex: 2)),
+            );
+          },
+        ),
+        // Título del perfil (el username)
         title: Text(widget.username),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: _showFollowOptions,
+        centerTitle: true,
+        backgroundColor:
+            Colors.transparent, // Color base transparente para el gradiente
+        elevation: 4.0,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        // Fondo con gradiente
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xffD32323), // Tu color original
+                Color(0xffD32323), // Un azul/cyan más oscuro
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
+        ),
+        actions: [
+          // No mostrar "más opciones" si estoy viendo mi propio perfil
+          if (_myUsername != widget.username)
+            IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: _showFollowOptions,
+            ),
         ],
       ),
+      // --- 👆 AQUÍ TERMINA EL APPBAR MEJORADO 👆 ---
+
       body: RefreshIndicator(
         onRefresh: _loadUserProfile,
         child: SingleChildScrollView(
@@ -399,7 +532,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     const SizedBox(height: 16),
 
                     // BOTONES DE ACCIÓN
-                    _buildActionButtons(),
+                    // Solo mostrar si NO es mi propio perfil
+                    if (_myUsername != widget.username) _buildActionButtons(),
                   ],
                 ),
               ),
@@ -411,6 +545,58 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ),
         ),
       ),
+
+      // --- BARRA DE NAVEGACIÓN AÑADIDA ---
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xffD32323),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.5),
+        currentIndex:
+            _selectedIndex < 0 ? 0 : _selectedIndex, // Evita error con -1
+        onTap: _onItemTapped,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        elevation: 0,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home,
+                color: _selectedIndex == 0
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5)),
+            label: 'Muro',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person,
+                color: _selectedIndex == 1
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5)),
+            label: 'Perfil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble,
+                color: _selectedIndex == 2
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5)),
+            label: 'Chats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group,
+                color: _selectedIndex == 3
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5)),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings,
+                color: _selectedIndex == 4
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5)),
+            label: 'Ajustes',
+          ),
+        ],
+      ),
+      // --- FIN DE LA BARRA ---
     );
   }
 
@@ -423,9 +609,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _toggleFollow,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isFollowing
-                  ? Colors.grey
-                  : const Color(0xff703eff),
+              backgroundColor:
+                  _isFollowing ? Colors.grey : const Color(0xff703eff),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
