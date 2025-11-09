@@ -292,8 +292,8 @@ class _HomePageState extends State<HomePage> {
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xffD32323), // Tu rojo original
-                  Color(0xff9A1C1C), // Un rojo más oscuro
+                  Color.fromARGB(255, 156, 50, 50), // Tu rojo original
+                  Color.fromARGB(255, 211, 38, 38), // Un rojo más oscuro
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -433,7 +433,8 @@ class _HomePageState extends State<HomePage> {
       ),
       
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xffD32323),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
+,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),

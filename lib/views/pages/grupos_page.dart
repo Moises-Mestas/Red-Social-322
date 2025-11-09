@@ -203,7 +203,7 @@ class _GruposPageState extends State<GruposPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       // 1. Poner el color de fondo rojo al Scaffold
-      backgroundColor: const Color(0xffD32323),
+      backgroundColor: const Color.fromARGB(255, 156, 50, 50),
       
       // 2. El body ahora es un Column
       body: Column(
@@ -214,7 +214,7 @@ class _GruposPageState extends State<GruposPage> {
             // 3. Añadir padding superior manual para la barra de estado
             padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             height: 56 + MediaQuery.of(context).padding.top, // Altura + barra de estado
-            color: const Color(0xffD32323), // Color rojo
+            color: const Color.fromARGB(255, 156, 50, 50), // Color rojo
             child: Row(
               children: [
                 _buildHeaderButton(
@@ -329,7 +329,7 @@ class _GruposPageState extends State<GruposPage> {
 
       // --- BARRA DE NAVEGACIÓN (Sin cambios) ---
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xffD32323),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),
@@ -375,7 +375,7 @@ class _GruposPageState extends State<GruposPage> {
         onTap: onTap,
         child: Container(
           // El color es sólido (rojo) para ambos
-          color: const Color(0xffD32323),
+          color: const Color.fromARGB(255, 156, 50, 50),
           child: Center(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),

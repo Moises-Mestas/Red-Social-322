@@ -645,7 +645,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
   Widget build(BuildContext context) {
   return Scaffold(
   // --- DISEÑO DE APPBAR Y FONDO ACTUALIZADO ---
-   backgroundColor: const Color(0xffD32323),
+   backgroundColor: const Color.fromARGB(255, 156, 50, 50)
+,
   appBar: AppBar(
   title: Text(
   	widget.groupName,
@@ -657,7 +658,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
    ),
       
             centerTitle: true,
-            backgroundColor: const Color(0xffD32323), // Color rojo
+            backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
             foregroundColor: Colors.white, // Color de texto e iconos blanco
             elevation: 0,
             actions: [

@@ -346,7 +346,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (_userProfileData[AppConstants.ocupacion] != null) {
       bio += '💼 ${_userProfileData[AppConstants.ocupacion]}\n';
     }
+// Teléfono
+    if (_userProfileData[AppConstants.telefono] != null && 
+        _userProfileData[AppConstants.telefono].isNotEmpty) {
+      bio += '📞 ${_userProfileData[AppConstants.telefono]}\n';
+    }
 
+    // Fecha de Nacimiento
+    if (_userProfileData[AppConstants.fecha_nacimiento] != null && 
+        _userProfileData[AppConstants.fecha_nacimiento].isNotEmpty) {
+      bio += '🍰 ${_userProfileData[AppConstants.fecha_nacimiento]}\n';
+    }
     if (_userProfileData[AppConstants.descripcion] != null) {
       bio += '${_userProfileData[AppConstants.descripcion]}\n';
     }
@@ -447,8 +457,10 @@ return Scaffold(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xffD32323), // Tu color original
-                Color(0xffD32323), // Un azul/cyan más oscuro
+                Color.fromARGB(255, 156, 50, 50)
+, // Tu color original
+                Color.fromARGB(255, 156, 50, 50)
+, // Un azul/cyan más oscuro
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -548,7 +560,7 @@ return Scaffold(
 
       // --- BARRA DE NAVEGACIÓN AÑADIDA ---
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xffD32323),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),

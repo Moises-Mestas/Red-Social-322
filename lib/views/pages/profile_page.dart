@@ -266,7 +266,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xffD32323),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         // Ocultar el botón de "atrás" automático
         automaticallyImplyLeading: false,
         actions: [
@@ -436,7 +436,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                   'Guardar cambios',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold, // <-- LETRA EN NEGRITA
+
                                   ),
                                 ),
                               ],
@@ -475,7 +477,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                 'Cerrar sesión',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 18,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold, // <-- LETRA EN NEGRITA
                                 ),
                               ),
                             ],
@@ -490,7 +493,7 @@ class _ProfilePageState extends State<ProfilePage> {
       
       // --- AÑADIDA LA BARRA DE NAVEGACIÓN ---
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xffD32323),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),

@@ -583,7 +583,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffD32323),
+      backgroundColor: const Color.fromARGB(255, 156, 50, 50),
       body: Container(
         margin: const EdgeInsets.only(top: 40.0),
         child: Column(

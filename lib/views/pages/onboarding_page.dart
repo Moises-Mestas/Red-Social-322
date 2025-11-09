@@ -1,7 +1,8 @@
+// lib/views/pages/onboarding_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_application_3/controllers/datos_controller.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../../controllers/datos_controller.dart';
 import '../../core/constants/app_constants.dart';
 import '../../views/pages/home_page.dart';
 
@@ -56,56 +57,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
   ];
 
   final List<String> _ciudadesPopulares = [
-    'Lima',
-    'Arequipa',
-    'Trujillo',
-    'Chiclayo',
-    'Piura',
-    'Iquitos',
-    'Cusco',
-    'Chimbote',
-    'Huancayo',
-    'Tacna',
-    'Ica',
-    'Juliaca',
-    'Sullana',
-    'Chincha Alta',
-    'Huanuco',
-    'Ayacucho',
-    'Cajamarca',
-    'Pucallpa',
-    'Tumbes',
-    'Talara',
-    'Huaraz',
-    'Puno',
-    'Tarapoto',
-    'Huaral',
-    'Cerro de Pasco',
-    'Chulucanas',
-    'Huaquillas',
-    'Huacho',
-    'Jaén',
-    'Moyobamba',
-    'Lambayeque',
-    'Pisco',
-    'Barranca',
-    'Chepén',
-    'Yurimaguas',
-    'Huánuco',
-    'Virú',
-    'Catacaos',
-    'Tarma',
-    'La Unión',
-    'Chocope',
-    'Sechura',
-    'Moche',
-    'Ilave',
-    'Azángaro',
-    'Moquegua',
-    'Casma',
-    'Mala',
-    'Santiago de Cao',
-    'Huamachuco',
+    'Lima', 'Arequipa', 'Trujillo', 'Chiclayo', 'Piura', 'Iquitos',
+    'Cusco', 'Chimbote', 'Huancayo', 'Tacna', 'Ica', 'Juliaca',
+    'Sullana', 'Chincha Alta', 'Huanuco', 'Ayacucho', 'Cajamarca',
+    'Pucallpa', 'Tumbes', 'Talara', 'Huaraz', 'Puno', 'Tarapoto',
+    'Huaral', 'Cerro de Pasco', 'Chulucanas', 'Huaquillas', 'Huacho',
+    'Jaén', 'Moyobamba', 'Lambayeque', 'Pisco', 'Barranca', 'Chepén',
+    'Yurimaguas', 'Huánuco', 'Virú', 'Catacaos', 'Tarma', 'La Unión',
+    'Chocope', 'Sechura', 'Moche', 'Ilave', 'Azángaro', 'Moquegua',
+    'Casma', 'Mala', 'Santiago de Cao', 'Huamachuco',
   ];
 
   @override
@@ -233,7 +193,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
 
     try {
-      // Verificar permisos
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw Exception('El servicio de ubicación está desactivado');
@@ -251,12 +210,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
         throw Exception('Permisos de ubicación denegados permanentemente');
       }
 
-      // Obtener ubicación
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Convertir coordenadas a dirección
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -319,7 +276,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           child: Column(
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -355,7 +311,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Barra de búsqueda
                     TextField(
                       controller: searchController,
                       decoration: InputDecoration(
@@ -380,8 +335,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           ciudadesFiltradas = _ciudadesPopulares
                               .where(
                                 (ciudad) => ciudad.toLowerCase().contains(
-                                  value.toLowerCase(),
-                                ),
+                                      value.toLowerCase(),
+                                    ),
                               )
                               .toList();
                         });
@@ -391,7 +346,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Lista de ciudades
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(8),
@@ -409,12 +363,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xffD32323).withOpacity(0.1),
+                            color: const Color.fromARGB(255, 156, 50, 50).withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.location_on,
-                            color: const Color(0xffD32323),
+                            color: const Color.fromARGB(255, 156, 50, 50),
                             size: 20,
                           ),
                         ),
@@ -455,7 +409,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(_getAppBarTitle()),
-        backgroundColor: const Color(0xffD32323),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         foregroundColor: Colors.white,
         elevation: 0,
         leading: _currentPage > 0
@@ -469,10 +423,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Progress Indicator
                 _buildProgressIndicator(),
-
-                // Page View
                 Expanded(
                   child: PageView(
                     controller: _pageController,
@@ -506,7 +457,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           LinearProgressIndicator(
             value: (_currentPage + 1) / 3,
             backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xffD32323)),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 156, 50, 50)),
             minHeight: 6,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -531,17 +482,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           _buildPageHeader(
             icon: Icons.location_on,
             title: '¿Dónde vives?',
             subtitle:
                 'Selecciona tu ubicación para conectar con personas cercanas',
           ),
-
           const SizedBox(height: 40),
-
-          // Opción 1: Usar ubicación actual
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -553,14 +500,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 height: 40,
                 decoration: BoxDecoration(
                   color: _usandoUbicacionActual
-                      ? const Color(0xffD32323).withOpacity(0.2)
+                      ? const Color.fromARGB(255, 156, 50, 50).withOpacity(0.2)
                       : Colors.grey[100],
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.my_location,
                   color: _usandoUbicacionActual
-                      ? const Color(0xffD32323)
+                      ? const Color.fromARGB(255, 156, 50, 50)
                       : Colors.grey,
                 ),
               ),
@@ -573,15 +520,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 style: TextStyle(fontSize: 12),
               ),
               trailing: _usandoUbicacionActual
-                  ? const Icon(Icons.check_circle, color: Color(0xffD32323))
+                  ? const Icon(Icons.check_circle, color: Color.fromARGB(255, 156, 50, 50))
                   : const Icon(Icons.chevron_right),
               onTap: _obtenerUbicacionActual,
             ),
           ),
-
           const SizedBox(height: 16),
-
-          // Opción 2: Seleccionar ciudad manualmente
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -594,18 +538,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 decoration: BoxDecoration(
                   color:
                       !_usandoUbicacionActual &&
-                          _ciudadController.text.isNotEmpty
-                      ? const Color(0xffD32323).withOpacity(0.2)
-                      : Colors.grey[100],
+                              _ciudadController.text.isNotEmpty
+                          ? const Color.fromARGB(255, 156, 50, 50).withOpacity(0.2)
+                          : Colors.grey[100],
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.search,
                   color:
                       !_usandoUbicacionActual &&
-                          _ciudadController.text.isNotEmpty
-                      ? const Color(0xffD32323)
-                      : Colors.grey,
+                              _ciudadController.text.isNotEmpty
+                          ? const Color.fromARGB(255, 156, 50, 50)
+                          : Colors.grey,
                 ),
               ),
               title: const Text(
@@ -620,28 +564,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   fontSize: 12,
                   color: _ciudadController.text.isEmpty
                       ? Colors.grey
-                      : const Color(0xffD32323),
+                      : const Color.fromARGB(255, 156, 50, 50),
                 ),
               ),
               trailing:
                   !_usandoUbicacionActual && _ciudadController.text.isNotEmpty
-                  ? const Icon(Icons.check_circle, color: Color(0xffD32323))
-                  : const Icon(Icons.chevron_right),
+                      ? const Icon(Icons.check_circle, color: Color.fromARGB(255, 156, 50, 50))
+                      : const Icon(Icons.chevron_right),
               onTap: _mostrarSeleccionCiudad,
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Ciudad seleccionada
           if (_ciudadController.text.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xffD32323).withOpacity(0.1),
+                color: const Color.fromARGB(255, 156, 50, 50).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xffD32323).withOpacity(0.3),
+                  color: const Color.fromARGB(255, 156, 50, 50).withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -650,7 +591,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     _usandoUbicacionActual
                         ? Icons.my_location
                         : Icons.location_on,
-                    color: const Color(0xffD32323),
+                    color: const Color.fromARGB(255, 156, 50, 50),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -670,7 +611,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           _ciudadController.text,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: Color(0xffD32323),
+                            color: Color.fromARGB(255, 156, 50, 50),
                           ),
                         ),
                       ],
@@ -688,10 +629,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ],
               ),
             ),
-
           const Spacer(),
-
-          // Botón Siguiente
           _buildNextButton(
             onPressed: _ciudadController.text.isEmpty ? null : _nextPage,
             text: 'Continuar',
@@ -708,24 +646,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           _buildPageHeader(
             icon: Icons.person_outline,
             title: 'Información Personal',
             subtitle: 'Esta información nos ayuda a conocerte mejor',
           ),
-
           const SizedBox(height: 30),
-
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Fecha de Nacimiento
                   _buildDateField(),
                   const SizedBox(height: 20),
-
-                  // Género
                   _buildDropdown(
                     value: _generoSeleccionado,
                     items: _generos,
@@ -739,8 +671,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     },
                   ),
                   const SizedBox(height: 20),
-
-                  // Teléfono
                   _buildTextField(
                     controller: _telefonoController,
                     label: 'Teléfono (Opcional)',
@@ -749,8 +679,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 20),
-
-                  // Estudios
                   _buildDropdown(
                     value: _estudiosSeleccionado,
                     items: _nivelesEstudios,
@@ -764,22 +692,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     },
                   ),
                   const SizedBox(height: 20),
-
-                  // Ocupación
                   _buildTextField(
                     controller: _ocupacionController,
                     label: 'Ocupación (Opcional)',
                     hint: 'Ej: Desarrollador, Estudiante, etc.',
                     icon: Icons.work,
                   ),
+                  // --- INICIO DE LA MODIFICACIÓN ---
+                  const SizedBox(height: 120), // <-- Espacio blanco añadido
+                  // --- FIN DE LA MODIFICACIÓN ---
                 ],
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Botones de Navegación
           _buildNavigationButtons(onNext: _nextPage, showPrevious: true),
         ],
       ),
@@ -793,20 +719,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           _buildPageHeader(
             icon: Icons.favorite_outline,
             title: 'Sobre Ti',
             subtitle: 'Cuéntanos más sobre tus intereses y estilo de vida',
           ),
-
           const SizedBox(height: 30),
-
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Estado de Relación
                   _buildDropdown(
                     value: _estadoRelacionSeleccionado,
                     items: _estadosRelacion,
@@ -820,17 +742,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     },
                   ),
                   const SizedBox(height: 20),
-
-                  // Descripción
                   _buildDescriptionField(),
+                  // --- INICIO DE LA MODIFICACIÓN ---
+                  const SizedBox(height: 20), // <-- Espacio blanco añadido
+                  // --- FIN DE LA MODIFICACIÓN ---
                 ],
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Botón Finalizar
           _buildFinishButton(),
         ],
       ),
@@ -845,7 +765,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 50, color: const Color(0xffD32323).withOpacity(0.8)),
+        Icon(icon, size: 50, color: const Color.fromARGB(255, 156, 50, 50).withOpacity(0.8)),
         const SizedBox(height: 15),
         Text(
           title,
@@ -885,7 +805,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             hintText: 'Selecciona tu fecha de nacimiento',
             prefixIcon: const Icon(
               Icons.calendar_today,
-              color: Color(0xffD32323),
+              color: Color.fromARGB(255, 156, 50, 50),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -893,7 +813,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 156, 50, 50), width: 2),
             ),
           ),
         ),
@@ -925,14 +845,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: const Color(0xffD32323)),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 156, 50, 50)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 156, 50, 50), width: 2),
             ),
           ),
         ),
@@ -966,16 +886,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
           onChanged: onChanged,
+          // --- INICIO DE LA MODIFICACIÓN ---
+          menuMaxHeight: 1000.0, // <-- Limita la altura del menú
+          // --- FIN DE LA MODIFICACIÓN ---
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: const Color(0xffD32323)),
+            prefixIcon: Icon(icon, color: const Color.fromARGB(255, 156, 50, 50)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 156, 50, 50), width: 2),
             ),
           ),
           isExpanded: true,
@@ -1011,7 +934,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xffD32323), width: 2),
+              borderSide: const BorderSide(color: Color.fromARGB(255, 156, 50, 50), width: 2),
             ),
           ),
         ),
@@ -1019,23 +942,27 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
+  // --- INICIO DE LA MODIFICACIÓN (AÑADIR PADDING) ---
   Widget _buildNextButton({VoidCallback? onPressed, required String text}) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xffD32323),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0), // <-- Padding inferior
+      child: SizedBox(
+        width: double.infinity,
+        height: 55,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 3,
           ),
-          elevation: 3,
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -1045,83 +972,90 @@ class _OnboardingPageState extends State<OnboardingPage> {
     required VoidCallback onNext,
     bool showPrevious = false,
   }) {
-    return Row(
-      children: [
-        if (showPrevious)
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0), // <-- Padding inferior
+      child: Row(
+        children: [
+          if (showPrevious)
+            Expanded(
+              child: SizedBox(
+                height: 55,
+                child: OutlinedButton(
+                  onPressed: _previousPage,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color.fromARGB(255, 156, 50, 50),
+                    side: const BorderSide(color: Color.fromARGB(255, 156, 50, 50)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Atrás',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
+          if (showPrevious) const SizedBox(width: 15),
           Expanded(
             child: SizedBox(
               height: 55,
-              child: OutlinedButton(
-                onPressed: _previousPage,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xffD32323),
-                  side: const BorderSide(color: Color(0xffD32323)),
+              child: ElevatedButton(
+                onPressed: onNext,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 3,
                 ),
                 child: const Text(
-                  'Atrás',
+                  'Siguiente',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
           ),
-        if (showPrevious) const SizedBox(width: 15),
-        Expanded(
-          child: SizedBox(
-            height: 55,
-            child: ElevatedButton(
-              onPressed: onNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xffD32323),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
-              ),
-              child: const Text(
-                'Siguiente',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildFinishButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        onPressed: _guardarPerfil,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xffD32323),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0), // <-- Padding inferior
+      child: SizedBox(
+        width: double.infinity,
+        height: 55,
+        child: ElevatedButton(
+          onPressed: _guardarPerfil,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 3,
           ),
-          elevation: 3,
-        ),
-        child: _isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  'Finalizar Perfil',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              )
-            : const Text(
-                'Finalizar Perfil',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+        ),
       ),
     );
   }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   @override
   void dispose() {

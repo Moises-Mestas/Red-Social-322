@@ -258,7 +258,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
           ),
         ),
         centerTitle: true, // Título centrado
-        backgroundColor: const Color(0xffD32323), // Color de fondo rojo
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color de fondo rojo
         elevation: 0, // Opcional: quitar sombra
       ),
       // --- FIN DE LA MODIFICACIÓN DEL APPBAR ---
@@ -302,13 +302,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
       // --- MODIFICACIÓN DEL BOTÓN FLOTANTE ---
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreatePostModal,
-        backgroundColor: const Color(0xffD32323), // Color rojo
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
         child: const Icon(Icons.add, color: Colors.white),
       ),
       // --- FIN DE LA MODIFICACIÓN ---
 
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xffD32323), 
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),
@@ -903,7 +903,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send, color: Color(0xffD32323)),
+                icon: const Icon(Icons.send, color: Color.fromARGB(255, 156, 50, 50)),
                 onPressed: _sendComment,
               ),
             ],
