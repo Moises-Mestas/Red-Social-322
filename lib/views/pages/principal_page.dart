@@ -30,10 +30,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
   final SharedPrefService _sharedPrefService = SharedPrefService();
   final ImagePicker _picker = ImagePicker();
 
-  // --- AÑADIDO: Controlador de Seguidores ---
   final FollowersController _followController = FollowersController();
   Stream? _followingStream; // Stream para la lista de seguidos
-  // -------------------------------------------
 
   String? _myUserId;
   String? _myUsername;
@@ -51,7 +49,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   @override
   void initState() {
     super.initState();
-    _loadMyUserId(); // <-- Este método ahora también cargará el stream de seguidos
+    _loadMyUserId();
     timeago.setLocaleMessages('es', timeago.EsMessages());
   }
 
@@ -59,11 +57,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
     _myUserId = await _sharedPrefService.getUserId();
     _myUsername = await _sharedPrefService.getUserName();
 
-    // --- AÑADIDO: Cargar el stream de seguidos ---
     if (_myUserId != null) {
       _followingStream = _followController.getFollowingStream(_myUserId!);
     }
-    // -------------------------------------------
     setState(() {});
   }
 
@@ -401,14 +397,15 @@ class _PrincipalPageState extends State<PrincipalPage> {
             itemBuilder: (context, index) {
               var userDoc = docs[index].data() as Map<String, dynamic>;
 
-              // --- ¡CAMBIO! Pasamos el userId al nuevo widget ---
+              // --- ¡CORRECCIÓN APLICADA! ---
+              // Eliminamos 'imageUrl' de aquí, ya que el widget
+              // _FollowingCircle lo obtendrá por sí mismo.
               return _FollowingCircle(
-                userId: userDoc['userId'], // Pasamos el ID
+                userId: userDoc['userId'],
                 username: userDoc['username'] ?? '...',
-                imageUrl: userDoc['userImageUrl'] ?? '',
-                databaseService: _databaseService, // Pasamos el servicio
+                databaseService: _databaseService,
               );
-              // ------------------------------------------------
+              // --- FIN DE LA CORRECCIÓN ---
             },
           );
         },
@@ -679,18 +676,15 @@ class _PrincipalPageState extends State<PrincipalPage> {
   }
 } // --- FIN DE LA CLASE _PrincipalPageState ---
 
-// --- WIDGET NUEVO AÑADIDO AL FINAL DEL ARCHIVO (Implementación del Código 2) ---
-/// Este es un widget Stateful que escucha el estado de UN solo usuario
+// --- WIDGET MODIFICADO (Implementación del Código 2) ---
 class _FollowingCircle extends StatefulWidget {
   final String userId;
   final String username;
-  final String imageUrl;
   final DatabaseService databaseService;
 
   const _FollowingCircle({
     required this.userId,
     required this.username,
-    required this.imageUrl,
     required this.databaseService,
   });
 
@@ -704,7 +698,6 @@ class _FollowingCircleState extends State<_FollowingCircle> {
   @override
   void initState() {
     super.initState();
-    // Configuramos el stream para escuchar el documento de este usuario
     _userStream = widget.databaseService.getUserStream(widget.userId);
   }
 
@@ -712,7 +705,6 @@ class _FollowingCircleState extends State<_FollowingCircle> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // La navegación a UserProfilePage sigue funcionando
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -728,33 +720,36 @@ class _FollowingCircleState extends State<_FollowingCircle> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Usamos un StreamBuilder para obtener el estado 'isOnline'
             StreamBuilder<DocumentSnapshot>(
               stream: _userStream,
               builder: (context, snapshot) {
                 bool isOnline = false;
+                String imageUrl = ''; // <-- Inicia vacío
+
                 if (snapshot.hasData && snapshot.data!.exists) {
                   var data = snapshot.data!.data() as Map<String, dynamic>;
-                  // Comprobamos si el campo existe y es true
                   isOnline =
                       data.containsKey('isOnline') ? data['isOnline'] : false;
+
+                  // --- ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA! ---
+                  // Leemos el campo 'Image' (con 'I' mayúscula, como en tu BD)
+                  imageUrl =
+                      data.containsKey('Image') ? data['Image'] ?? '' : '';
+                  // --- FIN DE LA LÓGICA ---
                 }
 
-                // Usamos un Stack para poner el círculo verde encima
                 return Stack(
                   children: [
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: Colors.grey[200],
-                      backgroundImage: widget.imageUrl.isNotEmpty
-                          ? NetworkImage(widget.imageUrl)
+                      backgroundImage: imageUrl.isNotEmpty
+                          ? NetworkImage(imageUrl) // <-- Usamos la foto del stream
                           : null,
-                      child: widget.imageUrl.isEmpty
+                      child: imageUrl.isEmpty
                           ? Icon(Icons.person, color: Colors.grey[400])
                           : null,
                     ),
-
-                    // Si está en línea, mostramos el círculo verde
                     if (isOnline)
                       Positioned(
                         bottom: 2,
@@ -1089,7 +1084,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                   decoration: InputDecoration(
                     hintText: _replyingToCommentId != null
                         ? "Escribe tu respuesta..."
-                        : "Añade un comentario...",
+                        :"Añade un comentario...",
                     border: InputBorder.none,
                   ),
                   textCapitalization: TextCapitalization.sentences,
