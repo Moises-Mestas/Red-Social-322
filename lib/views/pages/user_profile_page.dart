@@ -13,6 +13,8 @@ import 'package:flutter_application_3/views/pages/principal_page.dart';
 import 'package:flutter_application_3/views/pages/home_page.dart';
 import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
+// --- Import AÑADIDO para la edición ---
+import 'package:flutter_application_3/views/pages/edit_profile_page.dart';
 // ----------------------------------------------------
 
 class UserProfilePage extends StatefulWidget {
@@ -42,33 +44,33 @@ class _UserProfilePageState extends State<UserProfilePage> {
   int _selectedTab = 0;
   bool _isSendingMessage = false;
 
-  // --- AÑADIDO: Estado de la barra de navegación ---
-  int _selectedIndex = 1; // Esta es la pestaña 1 (Perfil) por defecto
+  int _selectedIndex = 1;
+  bool _isMyProfile = false; // <-- AÑADIDO: Para saber si es mi perfil
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-    _checkIfThisIsMyProfile(); // <-- Comprobar si estoy viendo mi propio perfil
+    _checkIfThisIsMyProfile();
   }
 
-  // --- AÑADIDO: Comprobar si el perfil que se visita es el mío ---
+  // --- MODIFICADO: Comprobar si el perfil que se visita es el mío ---
   Future<void> _checkIfThisIsMyProfile() async {
     _myUsername = await _sharedPrefService.getUserName();
     if (widget.username == _myUsername) {
       setState(() {
         _selectedIndex = 1; // Si es mi perfil, el ícono 1 está activo
+        _isMyProfile = true; // <-- AÑADIDO
       });
     } else {
-      // No es mi perfil, ningún ícono de perfil está activo
       setState(() {
-        _selectedIndex = -1; // -1 para que no se seleccione nada
+        _selectedIndex = -1; // No es mi perfil, ningún ícono está activo
+        _isMyProfile = false; // <-- AÑADIDO
       });
     }
   }
   // -----------------------------------------------------------
 
-  // --- AÑADIDO: Lógica de navegación ---
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
 
@@ -130,18 +132,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
         break;
     }
   }
-  // ------------------------------------
 
   Future<void> _loadUserProfile() async {
     try {
-      // 1. Buscar usuario por username para obtener el ID
       final userQuery = await _databaseService.getUserInfo(widget.username);
       if (userQuery.docs.isNotEmpty) {
         final userDoc = userQuery.docs.first;
-        _userId = userDoc.id; // Este es el ID real del documento
+        _userId = userDoc.id;
         _userData = userDoc.data() as Map<String, dynamic>;
 
-        // 2. Cargar datos personales usando el ID
         final profileSnapshot = await _databaseService.getDatosCollection(
           _userId!,
         );
@@ -149,15 +148,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _userProfileData = profileSnapshot.data() as Map<String, dynamic>;
         }
 
-        // 3. Cargar estadísticas solo si tenemos el ID
         if (_userId != null) {
           _followersCount = await _followController.getFollowersCount(_userId!);
           _followingCount = await _followController.getFollowingCount(_userId!);
 
-          // Verificar si el usuario actual sigue a este usuario
           final currentUserId = await _sharedPrefService.getUserId();
           if (currentUserId != null && currentUserId != _userId) {
-            // <-- No comprobar si es mi propio perfil
             _isFollowing = await _followController.isFollowing(_userId!);
           }
         }
@@ -336,32 +332,32 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
+  // --- REEMPLAZADO: _buildBio con la versión del Código 2 ---
   String _buildBio() {
     String bio = '';
 
-    if (_userProfileData[AppConstants.ciudad] != null) {
+    if (_userProfileData[AppConstants.ciudad] != null &&
+        _userProfileData[AppConstants.ciudad].isNotEmpty) {
       bio += '📍 ${_userProfileData[AppConstants.ciudad]}\n';
     }
-
-    if (_userProfileData[AppConstants.ocupacion] != null) {
+    if (_userProfileData[AppConstants.ocupacion] != null &&
+        _userProfileData[AppConstants.ocupacion].isNotEmpty) {
       bio += '💼 ${_userProfileData[AppConstants.ocupacion]}\n';
     }
-// Teléfono
-    if (_userProfileData[AppConstants.telefono] != null && 
+    if (_userProfileData[AppConstants.telefono] != null &&
         _userProfileData[AppConstants.telefono].isNotEmpty) {
       bio += '📞 ${_userProfileData[AppConstants.telefono]}\n';
     }
-
-    // Fecha de Nacimiento
-    if (_userProfileData[AppConstants.fecha_nacimiento] != null && 
+    if (_userProfileData[AppConstants.fecha_nacimiento] != null &&
         _userProfileData[AppConstants.fecha_nacimiento].isNotEmpty) {
       bio += '🍰 ${_userProfileData[AppConstants.fecha_nacimiento]}\n';
     }
-    if (_userProfileData[AppConstants.descripcion] != null) {
+    if (_userProfileData[AppConstants.descripcion] != null &&
+        _userProfileData[AppConstants.descripcion].isNotEmpty) {
       bio += '${_userProfileData[AppConstants.descripcion]}\n';
     }
 
-    return bio.isEmpty ? 'Usuario de AquiNomas' : bio;
+    return bio.isEmpty ? 'Usuario de AquiNomas' : bio.trim();
   }
 
   Widget _buildAdditionalInfo() {
@@ -424,43 +420,38 @@ class _UserProfilePageState extends State<UserProfilePage> {
       );
     }
 
-return Scaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
-      
-      // --- 👇 AQUÍ COMIENZA EL APPBAR MEJORADO Y CORREGIDO 👇 ---
+      // --- TU APPBAR MEJORADO (DEL CÓDIGO 1) ---
       appBar: AppBar(
-        // 1. Botón de retroceso que lleva a HomePage
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             // Navega (reemplazando) de vuelta a HomePage (pestaña 2)
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const HomePage(initialIndex: 2)),
+              MaterialPageRoute(
+                  builder: (context) => const HomePage(initialIndex: 2)),
             );
           },
         ),
-        // Título del perfil (el username)
         title: Text(widget.username),
         centerTitle: true,
         backgroundColor:
             Colors.transparent, // Color base transparente para el gradiente
-        elevation: 4.0,
+        elevation: 0, // Se ajustó a 0 en el Código 2, mantenemos eso
         titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        // Fondo con gradiente
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color.fromARGB(255, 156, 50, 50)
-, // Tu color original
-                Color.fromARGB(255, 156, 50, 50)
-, // Un azul/cyan más oscuro
+                Color.fromARGB(255, 156, 50, 50), // Tu color rojo
+                Color.fromARGB(255, 156, 50, 50), // Un rojo más oscuro
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -476,7 +467,7 @@ return Scaffold(
             ),
         ],
       ),
-      // --- 👆 AQUÍ TERMINA EL APPBAR MEJORADO 👆 ---
+      // --- FIN DEL APPBAR ---
 
       body: RefreshIndicator(
         onRefresh: _loadUserProfile,
@@ -543,9 +534,13 @@ return Scaffold(
 
                     const SizedBox(height: 16),
 
-                    // BOTONES DE ACCIÓN
-                    // Solo mostrar si NO es mi propio perfil
-                    if (_myUsername != widget.username) _buildActionButtons(),
+                    // --- INICIO DE LA MODIFICACIÓN (Lógica del Código 2) ---
+                    // Si es mi perfil, muestro "Editar", si no, muestro "Seguir/Mensaje"
+                    if (_isMyProfile)
+                      _buildEditProfileButton() // <-- Nuevo widget
+                    else
+                      _buildActionButtons(), // <-- Tu widget antiguo
+                    // --- FIN DE LA MODIFICACIÓN ---
                   ],
                 ),
               ),
@@ -558,9 +553,9 @@ return Scaffold(
         ),
       ),
 
-      // --- BARRA DE NAVEGACIÓN AÑADIDA ---
+      // --- TU BARRA DE NAVEGACIÓN (DEL CÓDIGO 1) ---
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),
@@ -612,6 +607,48 @@ return Scaffold(
     );
   }
 
+  // --- WIDGET NUEVO AÑADIDO (DEL CÓDIGO 2) ---
+  Widget _buildEditProfileButton() {
+    // Este widget reemplaza _buildActionButtons cuando es mi perfil
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePage(
+                    // Pasamos un mapa vacío. EditProfilePage se encarga
+                    // de cargar sus propios datos en su initState.
+                    userData: const {},
+                    onProfileUpdated: () {
+                      _loadUserProfile(); // Esto refresca esta página cuando volvemos
+                    },
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[200], // Color gris claro
+              foregroundColor: Colors.black, // Texto negro
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              elevation: 0, // Sin sombra
+            ),
+            child: const Text(
+              'Editar Perfil',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  // --- FIN DEL WIDGET NUEVO ---
+
   Widget _buildActionButtons() {
     return Row(
       children: [
@@ -641,10 +678,9 @@ return Scaffold(
                 : Text(_isFollowing ? 'Siguiendo' : 'Seguir'),
           ),
         ),
-
         const SizedBox(width: 8),
 
-        // BOTÓN MENSAJE - SOLO VISIBLE CUANDO SIGUES AL USUARIO
+        // BOTÓN MENSAJE
         if (_isFollowing)
           Expanded(
             flex: 2,
@@ -673,10 +709,9 @@ return Scaffold(
                   : const Text('Mensaje'),
             ),
           ),
-
         if (_isFollowing) const SizedBox(width: 8),
 
-        // BOTÓN AGREGAR (siempre visible pero con funcionalidad limitada)
+        // BOTÓN AGREGAR
         Container(
           height: 48,
           width: 48,
