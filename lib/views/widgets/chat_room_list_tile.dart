@@ -8,7 +8,7 @@ class ChatRoomListTile extends StatefulWidget {
   final String lastMessage;
   final String myUsername;
   final String time;
-
+  // (unreadCount ya estaba eliminado, lo cual es correcto)
   const ChatRoomListTile({
     super.key,
     required this.chatRoomId,
@@ -66,95 +66,93 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
           ),
         );
       },
-      child: Material(
-        elevation: 3.0,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          width: MediaQuery.of(context).size.width,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Imagen de perfil
-              profilePicUrl.isEmpty
-                  ? const CircleAvatar(
-                      backgroundColor: Colors.grey,
-                      radius: 35,
-                      child: Icon(Icons.person, color: Colors.white),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(60),
-                      child: Image.network(
-                        profilePicUrl,
-                        height: 70,
-                        width: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const CircleAvatar(
-                            backgroundColor: Colors.grey,
-                            radius: 35,
-                            child: Icon(Icons.person, color: Colors.white),
-                          );
-                        },
+      // --- CORRECCIÓN 1: Margen añadido ---
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15.0),
+        child: Material(
+          elevation: 3.0,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            width: MediaQuery.of(context).size.width,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Imagen de perfil
+                profilePicUrl.isEmpty
+                    ? const CircleAvatar(
+                        backgroundColor: Colors.grey,
+                        radius: 35,
+                        child: Icon(Icons.person, color: Colors.white),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(60),
+                        child: Image.network(
+                          profilePicUrl,
+                          height: 70,
+                          width: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const CircleAvatar(
+                              backgroundColor: Colors.grey,
+                              radius: 35,
+                              child: Icon(Icons.person, color: Colors.white),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-              const SizedBox(width: 20.0),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 10.0),
-                    Text(
-                      name.isNotEmpty ? name : "Cargando...",
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.w500,
+                // --- CORRECCIÓN 2: SizedBox ajustado ---
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 10.0),
+                      Text(
+                        name.isNotEmpty ? name : "Cargando...",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 5.0),
-                    Text(
-                      widget.lastMessage,
-                      style: const TextStyle(
-                        color: Color.fromARGB(151, 0, 0, 0),
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.w400,
+                      const SizedBox(height: 5.0),
+                      Text(
+                        widget.lastMessage,
+                        style: const TextStyle(
+                          color: Color.fromARGB(151, 0, 0, 0),
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10.0),
-              Text(
-                _formatTime(widget.time),
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(width: 10.0),
+                // --- CORRECCIÓN 3: Widget de hora simplificado y estilo cambiado ---
+                Text(
+                  widget.time,
+                  style: const TextStyle(
+                    color: Colors.black45,
+                    fontSize: 12.0,
+                  ),
                 ),
-              ),
-            ],
+                // --- FIN DE LA CORRECCIÓN ---
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  String _formatTime(String time) {
-    try {
-      if (time.length > 10) {
-        return time.substring(11, 16); // Formato HH:mm
-      }
-      return time;
-    } catch (e) {
-      return time;
-    }
-  }
+  // --- CORRECCIÓN 4: Función _formatTime eliminada (ya no se usa) ---
+  // String _formatTime(String time) { ... }
 }

@@ -196,7 +196,7 @@ class _HomePageState extends State<HomePage> {
           itemBuilder: (context, index) {
             DocumentSnapshot ds = snapshot.data.docs[index];
 
-            return ChatRoomListTile(
+          return ChatRoomListTile(
               chatRoomId: ds.id,
               lastMessage: ds["lastMessage"] ?? "",
               myUsername: myUsername!,

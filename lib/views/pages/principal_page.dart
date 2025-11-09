@@ -5,14 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_3/controllers/post_controller.dart';
 import 'package:flutter_application_3/models/comment_model.dart';
 import 'package:flutter_application_3/models/post_model.dart';
-import 'package:flutter_application_3/services/database_service.dart'; 
+import 'package:flutter_application_3/services/database_service.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart';
-import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/home_page.dart';
-import 'package:flutter_application_3/views/pages/profile_page.dart';
 import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:timeago/timeago.dart' as timeago;
+
+// --- Imports añadidos ---
+import 'package:flutter_application_3/controllers/followers_controller.dart';
+import 'package:flutter_application_3/views/pages/grupos_page.dart';
+import 'package:flutter_application_3/views/pages/profile_page.dart';
+// ------------------------
 
 class PrincipalPage extends StatefulWidget {
   const PrincipalPage({super.key});
@@ -26,8 +30,13 @@ class _PrincipalPageState extends State<PrincipalPage> {
   final SharedPrefService _sharedPrefService = SharedPrefService();
   final ImagePicker _picker = ImagePicker();
 
+  // --- AÑADIDO: Controlador de Seguidores ---
+  final FollowersController _followController = FollowersController();
+  Stream? _followingStream; // Stream para la lista de seguidos
+  // -------------------------------------------
+
   String? _myUserId;
-  String? _myUsername; 
+  String? _myUsername;
   File? _imageToPost;
   final TextEditingController _textController = TextEditingController();
 
@@ -37,35 +46,38 @@ class _PrincipalPageState extends State<PrincipalPage> {
   List<Map<String, dynamic>> _tempSearchStore = [];
   String _lastSearchKey = "";
 
-  int _selectedIndex = 0; 
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadMyUserId();
+    _loadMyUserId(); // <-- Este método ahora también cargará el stream de seguidos
     timeago.setLocaleMessages('es', timeago.EsMessages());
   }
 
   void _loadMyUserId() async {
     _myUserId = await _sharedPrefService.getUserId();
     _myUsername = await _sharedPrefService.getUserName();
+
+    // --- AÑADIDO: Cargar el stream de seguidos ---
+    if (_myUserId != null) {
+      _followingStream = _followController.getFollowingStream(_myUserId!);
+    }
+    // -------------------------------------------
     setState(() {});
   }
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
+    if (index == 1 && _myUsername == null) return;
 
-    if (index == 1 && _myUsername == null) {
-        return; 
-    }
-    
     setState(() {
       _selectedIndex = index;
     });
 
     switch (index) {
       case 0: // Muro Principal (Esta página)
-         Navigator.pushReplacement(
+        Navigator.pushReplacement(
           context,
           PageRouteBuilder(
             pageBuilder: (context, a, b) => const PrincipalPage(),
@@ -77,13 +89,14 @@ class _PrincipalPageState extends State<PrincipalPage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, a, b) => UserProfilePage(username: _myUsername!),
+            pageBuilder: (context, a, b) =>
+                UserProfilePage(username: _myUsername!),
             transitionDuration: Duration.zero,
           ),
         );
         break;
       case 2: // Chats (HomePage)
-         Navigator.pushReplacement(
+        Navigator.pushReplacement(
           context,
           PageRouteBuilder(
             pageBuilder: (context, a, b) => const HomePage(),
@@ -234,37 +247,31 @@ class _PrincipalPageState extends State<PrincipalPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
-      // --- INICIO DE LA MODIFICACIÓN DEL APPBAR ---
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Navega (reemplazando) de vuelta a HomePage
             Navigator.pushReplacement(
               context,
-              PageRouteBuilder(
-                pageBuilder: (context, a, b) => const HomePage(),
-                transitionDuration: Duration.zero,
-              ),
+              MaterialPageRoute(builder: (context) => const HomePage()),
             );
           },
         ),
         title: const Text(
-          'MI MURO', // Texto en mayúsculas
+          'MI MURO',
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold, // Texto en negrita
+            fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true, // Título centrado
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color de fondo rojo
-        elevation: 0, // Opcional: quitar sombra
+        centerTitle: true,
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
+, // Color rojo
+        elevation: 0,
       ),
-      // --- FIN DE LA MODIFICACIÓN DEL APPBAR ---
-
       body: Column(
         children: [
+          // 1. Barra de Búsqueda
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             color: Colors.white,
@@ -286,6 +293,12 @@ class _PrincipalPageState extends State<PrincipalPage> {
               ),
             ),
           ),
+
+          // 2. --- BARRA HORIZONTAL DE SEGUIDOS ---
+          _buildFollowingBar(),
+          // -------------------------------------------
+
+          // 3. Contenido (Resultados o Feed)
           Expanded(
             child: _search
                 ? ListView(
@@ -298,17 +311,15 @@ class _PrincipalPageState extends State<PrincipalPage> {
           ),
         ],
       ),
-      
-      // --- MODIFICACIÓN DEL BOTÓN FLOTANTE ---
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreatePostModal,
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
+, // Color rojo
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      // --- FIN DE LA MODIFICACIÓN ---
-
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
+, // Color rojo
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),
@@ -343,6 +354,69 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
+  // --- WIDGET MODIFICADO (Implementación del Código 2) ---
+  /// Construye la barra horizontal de usuarios seguidos
+  Widget _buildFollowingBar() {
+    if (_followingStream == null) {
+      // Stream no está listo (ej. _myUserId es nulo)
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      height: 110, // Altura para el círculo (60) + padding (10+10) + texto (aprox 30)
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white, // Fondo blanco
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[300]!, width: 1), // Línea divisoria
+        ),
+      ),
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _followingStream as Stream<QuerySnapshot>?,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              _tempSearchStore.isEmpty) {
+            // No mostrar un loader gigante, uno pequeño está bien
+            return const Center(
+                child: SizedBox(
+                    height: 30,
+                    width: 30,
+                    child: CircularProgressIndicator(strokeWidth: 2)));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'Sigue a otros usuarios para verlos aquí.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            );
+          }
+
+          var docs = snapshot.data!.docs;
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              var userDoc = docs[index].data() as Map<String, dynamic>;
+
+              // --- ¡CAMBIO! Pasamos el userId al nuevo widget ---
+              return _FollowingCircle(
+                userId: userDoc['userId'], // Pasamos el ID
+                username: userDoc['username'] ?? '...',
+                imageUrl: userDoc['userImageUrl'] ?? '',
+                databaseService: _databaseService, // Pasamos el servicio
+              );
+              // ------------------------------------------------
+            },
+          );
+        },
+      ),
+    );
+  }
+  // --- FIN DEL WIDGET ---
+
   Widget _buildFeed() {
     if (_myUserId == null) {
       return const Center(child: CircularProgressIndicator());
@@ -355,7 +429,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("No hay publicaciones. ¡Sé el primero!"));
+          return const Center(
+              child: Text("No hay publicaciones. ¡Sé el primero!"));
         }
 
         return ListView.builder(
@@ -387,10 +462,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 GestureDetector(
                   onTap: () {
                     if (_search) {
-                       setState(() {
-                         _search = false;
-                         _searchController.clear();
-                       });
+                      setState(() {
+                        _search = false;
+                        _searchController.clear();
+                      });
                     }
                     Navigator.push(
                       context,
@@ -412,17 +487,18 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(post.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text(timeAgo, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(post.userName,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(timeAgo,
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 15),
-
             if (post.text.isNotEmpty)
               Text(post.text, style: const TextStyle(fontSize: 16)),
-            
             if (post.imageUrl != null) ...[
               const SizedBox(height: 10),
               ClipRRect(
@@ -440,7 +516,6 @@ class _PrincipalPageState extends State<PrincipalPage> {
             ],
             const SizedBox(height: 10),
             Divider(),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -462,9 +537,10 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.mode_comment_outlined, color: Colors.grey),
+                      icon: const Icon(Icons.mode_comment_outlined,
+                          color: Colors.grey),
                       onPressed: () {
-                        _showCommentsModal(context, post.id); 
+                        _showCommentsModal(context, post.id);
                       },
                     ),
                     Text("${post.commentCount}"),
@@ -477,8 +553,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
       ),
     );
   }
-  
-  // --- MODIFICACIÓN DEL MODAL ---
+
   void _showCreatePostModal() {
     _textController.clear();
     setState(() {
@@ -487,17 +562,16 @@ class _PrincipalPageState extends State<PrincipalPage> {
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, 
-      backgroundColor: Colors.transparent, // Fondo transparente para ver el margen
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalSetState) {
-            // 1. Contenedor con margen
             return Container(
-              margin: const EdgeInsets.fromLTRB(10, 20, 10, 60), // <-- Sube el modal 
+              margin: const EdgeInsets.fromLTRB(10, 20, 10, 60),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20), // Bordes redondeados
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Padding(
                 padding: EdgeInsets.only(
@@ -509,7 +583,9 @@ class _PrincipalPageState extends State<PrincipalPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("Crear Publicación", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text("Crear Publicación",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 15),
                     TextField(
                       controller: _textController,
@@ -520,15 +596,16 @@ class _PrincipalPageState extends State<PrincipalPage> {
                       maxLines: 4,
                     ),
                     const SizedBox(height: 10),
-                    
                     if (_imageToPost != null)
-                      Image.file(
-                        _imageToPost!,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          _imageToPost!,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -536,7 +613,8 @@ class _PrincipalPageState extends State<PrincipalPage> {
                           icon: const Icon(Icons.image),
                           label: const Text("Adjuntar Imagen"),
                           onPressed: () async {
-                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                            final XFile? image = await _picker.pickImage(
+                                source: ImageSource.gallery);
                             if (image != null) {
                               modalSetState(() {
                                 _imageToPost = File(image.path);
@@ -547,20 +625,20 @@ class _PrincipalPageState extends State<PrincipalPage> {
                         ElevatedButton(
                           child: const Text("Publicar"),
                           onPressed: () async {
-                            if (_textController.text.isEmpty && _imageToPost == null) {
+                            if (_textController.text.isEmpty &&
+                                _imageToPost == null) {
                               return;
                             }
-                            
+
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Publicando..."))
-                            );
-                            
+                                const SnackBar(content: Text("Publicando...")));
+
                             await _postController.createPost(
                               _textController.text,
                               _imageToPost,
                             );
-                            
+
                             ScaffoldMessenger.of(context).hideCurrentSnackBar();
                           },
                         ),
@@ -576,16 +654,15 @@ class _PrincipalPageState extends State<PrincipalPage> {
       },
     );
   }
-  // --- FIN DE LA MODIFICACIÓN ---
 
   void _showCommentsModal(BuildContext context, String postId) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, 
-      backgroundColor: Colors.transparent, 
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.8, 
+          initialChildSize: 0.8,
           minChildSize: 0.5,
           maxChildSize: 0.95,
           builder: (context, scrollController) {
@@ -600,8 +677,116 @@ class _PrincipalPageState extends State<PrincipalPage> {
       },
     );
   }
-} 
+} // --- FIN DE LA CLASE _PrincipalPageState ---
 
+// --- WIDGET NUEVO AÑADIDO AL FINAL DEL ARCHIVO (Implementación del Código 2) ---
+/// Este es un widget Stateful que escucha el estado de UN solo usuario
+class _FollowingCircle extends StatefulWidget {
+  final String userId;
+  final String username;
+  final String imageUrl;
+  final DatabaseService databaseService;
+
+  const _FollowingCircle({
+    required this.userId,
+    required this.username,
+    required this.imageUrl,
+    required this.databaseService,
+  });
+
+  @override
+  State<_FollowingCircle> createState() => _FollowingCircleState();
+}
+
+class _FollowingCircleState extends State<_FollowingCircle> {
+  Stream<DocumentSnapshot>? _userStream;
+
+  @override
+  void initState() {
+    super.initState();
+    // Configuramos el stream para escuchar el documento de este usuario
+    _userStream = widget.databaseService.getUserStream(widget.userId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // La navegación a UserProfilePage sigue funcionando
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserProfilePage(
+              username: widget.username,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Usamos un StreamBuilder para obtener el estado 'isOnline'
+            StreamBuilder<DocumentSnapshot>(
+              stream: _userStream,
+              builder: (context, snapshot) {
+                bool isOnline = false;
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  var data = snapshot.data!.data() as Map<String, dynamic>;
+                  // Comprobamos si el campo existe y es true
+                  isOnline =
+                      data.containsKey('isOnline') ? data['isOnline'] : false;
+                }
+
+                // Usamos un Stack para poner el círculo verde encima
+                return Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage: widget.imageUrl.isNotEmpty
+                          ? NetworkImage(widget.imageUrl)
+                          : null,
+                      child: widget.imageUrl.isEmpty
+                          ? Icon(Icons.person, color: Colors.grey[400])
+                          : null,
+                    ),
+
+                    // Si está en línea, mostramos el círculo verde
+                    if (isOnline)
+                      Positioned(
+                        bottom: 2,
+                        right: 2,
+                        child: Container(
+                          width: 15,
+                          height: 15,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 6),
+            Text(
+              widget.username,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+// ----------------------------------------------------
 
 class _CommentsModalContent extends StatefulWidget {
   final String postId;
@@ -622,9 +807,9 @@ class _CommentsModalContent extends StatefulWidget {
 
 class _CommentsModalContentState extends State<_CommentsModalContent> {
   final TextEditingController _commentController = TextEditingController();
-  
-  String? _replyingToCommentId; 
-  String? _replyingToUserName; 
+
+  String? _replyingToCommentId;
+  String? _replyingToUserName;
 
   void _cancelReply() {
     setState(() {
@@ -642,7 +827,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
       text: _commentController.text,
       parentCommentId: _replyingToCommentId,
     );
-    
+
     _cancelReply();
   }
 
@@ -666,7 +851,6 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
             ),
           ),
           Divider(height: 1),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: widget.postController.getCommentsStream(widget.postId),
@@ -685,7 +869,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 final topLevelComments = allComments
                     .where((c) => c.parentCommentId == null)
                     .toList();
-                
+
                 final replies = allComments
                     .where((c) => c.parentCommentId != null)
                     .toList();
@@ -703,7 +887,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                   itemCount: topLevelComments.length,
                   itemBuilder: (context, index) {
                     final comment = topLevelComments[index];
-                    final commentReplies = repliesMap[comment.id] ?? []; 
+                    final commentReplies = repliesMap[comment.id] ?? [];
 
                     return _buildCommentTile(
                       comment,
@@ -714,7 +898,6 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
               },
             ),
           ),
-
           _buildCommentInputArea(),
         ],
       ),
@@ -737,18 +920,21 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 radius: 18,
                 backgroundImage: NetworkImage(comment.userImageUrl.isNotEmpty
                     ? comment.userImageUrl
-                    : 'https://via.placeholder.com/150'), 
+                    : 'https://via.placeholder.com/150'),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(comment.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(comment.userName,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     Text(comment.text),
                     Row(
                       children: [
-                        Text(timeAgo, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(timeAgo,
+                            style: const TextStyle(
+                                color: Colors.grey, fontSize: 12)),
                         const SizedBox(width: 10),
                         GestureDetector(
                           onTap: () {
@@ -757,7 +943,11 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                               _replyingToUserName = comment.userName;
                             });
                           },
-                          child: const Text("Responder", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                          child: const Text("Responder",
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -776,23 +966,23 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                     ),
                     onPressed: () {
                       widget.postController.toggleCommentLike(
-                        postId: widget.postId, 
-                        commentId: comment.id, 
-                        currentLikes: comment.likes
-                      );
+                          postId: widget.postId,
+                          commentId: comment.id,
+                          currentLikes: comment.likes);
                     },
                   ),
-                  Text(comment.likes.length.toString(), style: const TextStyle(fontSize: 12)),
+                  Text(comment.likes.length.toString(),
+                      style: const TextStyle(fontSize: 12)),
                 ],
               ),
             ],
           ),
-          
           if (replies.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 40.0, top: 8.0),
               child: Column(
-                children: replies.map((reply) => _buildReplyTile(reply)).toList(),
+                children:
+                    replies.map((reply) => _buildReplyTile(reply)).toList(),
               ),
             ),
         ],
@@ -820,9 +1010,12 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(reply.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(reply.userName,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
                 Text(reply.text, style: const TextStyle(fontSize: 13)),
-                Text(timeAgo, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                Text(timeAgo,
+                    style: const TextStyle(color: Colors.grey, fontSize: 10)),
               ],
             ),
           ),
@@ -838,26 +1031,26 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 ),
                 onPressed: () {
                   widget.postController.toggleCommentLike(
-                    postId: widget.postId, 
-                    commentId: reply.id, 
-                    currentLikes: reply.likes
-                  );
+                      postId: widget.postId,
+                      commentId: reply.id,
+                      currentLikes: reply.likes);
                 },
               ),
-              Text(reply.likes.length.toString(), style: const TextStyle(fontSize: 10)),
+              Text(reply.likes.length.toString(),
+                  style: const TextStyle(fontSize: 10)),
             ],
           ),
         ],
       ),
     );
   }
-  
+
   Widget _buildCommentInputArea() {
     return Container(
       padding: EdgeInsets.only(
-        left: 16, 
-        right: 8, 
-        top: 8, 
+        left: 16,
+        right: 8,
+        top: 8,
         bottom: 8 + MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
@@ -894,7 +1087,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 child: TextField(
                   controller: _commentController,
                   decoration: InputDecoration(
-                    hintText: _replyingToCommentId != null 
+                    hintText: _replyingToCommentId != null
                         ? "Escribe tu respuesta..."
                         : "Añade un comentario...",
                     border: InputBorder.none,
@@ -903,7 +1096,8 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send, color: Color.fromARGB(255, 156, 50, 50)),
+                icon: const Icon(Icons.send,
+                    color: Color.fromARGB(255, 79, 191, 219)),
                 onPressed: _sendComment,
               ),
             ],

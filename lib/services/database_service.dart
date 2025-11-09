@@ -17,9 +17,8 @@ class DatabaseService {
     await _firestore
         .collection(AppConstants.usersCollection)
         .doc(id)
-        .set(userInfoMap);
+        .set(userInfoMap, SetOptions(merge: true)); // <-- AÑADIR ESTO  }
   }
-
   Future<QuerySnapshot> searchUser(String username) async {
     return await _firestore
         .collection(AppConstants.usersCollection)
@@ -352,4 +351,26 @@ class DatabaseService {
       'users': FieldValue.arrayRemove([username])
     });
   }
+
+/// Actualiza el estado de presencia del usuario en Firestore
+  Future<void> updateUserPresence(String userId, bool isOnline) async {
+    // Usamos .set con merge:true para crear los campos si no existen
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .set({
+      'isOnline': isOnline,
+      'lastSeen': FieldValue.serverTimestamp(), // Siempre actualiza la última vez visto
+    }, SetOptions(merge: true));
+  }
+
+  /// Obtiene un stream de un solo usuario (para ver su estado en vivo)
+  Stream<DocumentSnapshot> getUserStream(String userId) {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .snapshots();
+  }
 }
+
+
