@@ -8,7 +8,7 @@ class ChatRoomListTile extends StatefulWidget {
   final String lastMessage;
   final String myUsername;
   final String time;
-  // (unreadCount ya estaba eliminado, lo cual es correcto)
+
   const ChatRoomListTile({
     super.key,
     required this.chatRoomId,
@@ -27,7 +27,8 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
   String profilePicUrl = "";
   String name = "";
   String username = "";
-  String id = "";
+  String? otherUserId; // <-- Cambiado a 'otherUserId' para más claridad
+  Stream<DocumentSnapshot>? _userStream; // <-- Añadido de nuevo
 
   @override
   void initState() {
@@ -35,7 +36,8 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
     _getUserInfo();
   }
 
-  void _getUserInfo() async {
+  // --- CORRECCIÓN: El método debe ser Future<void> por ser async ---
+  Future<void> _getUserInfo() async {
     username = widget.chatRoomId
         .replaceAll("_", "")
         .replaceAll(widget.myUsername, "");
@@ -43,11 +45,19 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
     final querySnapshot = await _databaseService.getUserInfo(username);
 
     if (mounted && querySnapshot.docs.isNotEmpty) {
+      // Obtenemos el ID del documento del usuario
+      otherUserId = querySnapshot.docs[0].id; 
+      
       setState(() {
         name = querySnapshot.docs[0]["Name"];
         profilePicUrl = querySnapshot.docs[0]["Image"];
-        id = querySnapshot.docs[0]["Id"];
       });
+      
+      // Si obtuvimos el ID, nos suscribimos a su stream
+      if (otherUserId != null) {
+        _userStream = _databaseService.getUserStream(otherUserId!);
+        setState(() {}); // Actualiza para que el StreamBuilder escuche
+      }
     }
   }
 
@@ -60,13 +70,12 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
           MaterialPageRoute(
             builder: (context) => ChatPage(
               name: name,
-              profileurl: profilePicUrl,
+              profileurl: profilePicUrl, // Asegúrate que chat_page reciba 'profileurl'
               username: username,
             ),
           ),
         );
       },
-      // --- CORRECCIÓN 1: Margen añadido ---
       child: Container(
         margin: const EdgeInsets.only(bottom: 15.0),
         child: Material(
@@ -80,41 +89,68 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
             ),
             width: MediaQuery.of(context).size.width,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center, // <-- Centrado verticalmente
               children: [
-                // Imagen de perfil
-                profilePicUrl.isEmpty
-                    ? const CircleAvatar(
-                        backgroundColor: Colors.grey,
-                        radius: 35,
-                        child: Icon(Icons.person, color: Colors.white),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(60),
-                        child: Image.network(
-                          profilePicUrl,
-                          height: 70,
-                          width: 70,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const CircleAvatar(
-                              backgroundColor: Colors.grey,
-                              radius: 35,
-                              child: Icon(Icons.person, color: Colors.white),
-                            );
-                          },
-                        ),
-                      ),
-                // --- CORRECCIÓN 2: SizedBox ajustado ---
+                
+                // --- INICIO DE LA CORRECCIÓN (StreamBuilder para foto y estado online) ---
+                SizedBox(
+                  width: 70, // Ancho fijo
+                  height: 70, // Alto fijo
+                  child: StreamBuilder<DocumentSnapshot>(
+                    stream: _userStream, // Escucha el estado del usuario
+                    builder: (context, snapshot) {
+                      bool isOnline = false;
+                      String? imageFromStream = profilePicUrl; // Foto por defecto
+
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        var data = snapshot.data!.data() as Map<String, dynamic>;
+                        isOnline = data.containsKey('isOnline') ? data['isOnline'] : false;
+                        imageFromStream = data.containsKey('Image') ? data['Image'] : profilePicUrl;
+                      }
+
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 35, // 70 / 2
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage: (imageFromStream != null && imageFromStream!.isNotEmpty)
+                                ? NetworkImage(imageFromStream!)
+                                : null,
+                            child: (imageFromStream == null || imageFromStream!.isEmpty)
+                                ? const Icon(Icons.person, color: Colors.grey, size: 35)
+                                : null,
+                          ),
+                          if (isOnline)
+                            Positioned(
+                              bottom: 2,
+                              right: 2,
+                              child: Container(
+                                width: 15,
+                                height: 15,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                // --- FIN DE LA CORRECCIÓN ---
+
                 const SizedBox(width: 10.0),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 10.0),
+                      // const SizedBox(height: 10.0), // Ya no es necesario con crossAxisAlignment.center
                       Text(
-                        name.isNotEmpty ? name : "Cargando...",
+                        name.isNotEmpty ? name : "...",
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 18.0,
@@ -136,7 +172,6 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                   ),
                 ),
                 const SizedBox(width: 10.0),
-                // --- CORRECCIÓN 3: Widget de hora simplificado y estilo cambiado ---
                 Text(
                   widget.time,
                   style: const TextStyle(
@@ -144,7 +179,6 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                     fontSize: 12.0,
                   ),
                 ),
-                // --- FIN DE LA CORRECCIÓN ---
               ],
             ),
           ),
@@ -152,7 +186,4 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
       ),
     );
   }
-
-  // --- CORRECCIÓN 4: Función _formatTime eliminada (ya no se usa) ---
-  // String _formatTime(String time) { ... }
 }
