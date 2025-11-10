@@ -14,6 +14,9 @@ class PostController {
     return _databaseService.getPosts();
   }
 
+  Stream<QuerySnapshot> getPostsForUserStream(String userId) {
+    return _databaseService.getPostsForUser(userId);
+  }
 
 
   Future<void> createPost(String text, File? imageFile) async {

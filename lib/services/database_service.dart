@@ -268,6 +268,14 @@ class DatabaseService {
         .snapshots();
   }
 
+
+  Stream<QuerySnapshot> getPostsForUser(String userId) {
+    return _firestore
+        .collection(AppConstants.postsCollection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
   Future<void> toggleLike(String postId, String userId, bool isLiked) async {
     final docRef = _firestore
         .collection(AppConstants.postsCollection)
