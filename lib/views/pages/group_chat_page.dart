@@ -48,9 +48,11 @@ class _GroupChatPageState extends State<GroupChatPage> {
   String? _replyToMessageText;
   String? _replyToMessageSenderApodo;
 
+  // --- Variables de audio ---
   bool _isRecording = false;
   String? _filePath;
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  // --------------------------
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     super.dispose();
   }
   
+  // --- MÉTODOS DE AUDIO ---
   Future<void> _initializeAudio() async {
     await _recorder.openRecorder();
     await _requestPermission();
@@ -97,6 +100,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
   Future<void> _uploadAudioFile() async {
     if (_filePath == null) return;
     
+    // Guardamos el ScaffoldMessenger ANTES del await
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    scaffoldMessenger.showSnackBar(
+      const SnackBar(content: Text("Subiendo nota de voz..."))
+    );
+
     try {
       File file = File(_filePath!);
       TaskSnapshot snapshot = await FirebaseStorage.instance
@@ -114,63 +123,95 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
       _cancelReply();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text("Error al subir audio: $e"), backgroundColor: Colors.red),
       );
     }
   }
 
-  Future<void> _openRecordingDialog() => showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                const Text(
-                  "Nota de voz",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20.0),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    if (_isRecording) {
-                      await _stopRecording();
-                    } else {
-                      await _startRecording();
-                    }
-                  },
-                  icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                  label: Text(
-                    _isRecording ? 'Detener grabación' : 'Iniciar grabación',
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w600,
+  // --- INICIO DE LA CORRECCIÓN: _openRecordingDialog ---
+  Future<void> _openRecordingDialog() {
+    // Usamos StatefulBuilder para que el modal pueda actualizar su propio estado
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter modalSetState) {
+            return AlertDialog(
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // Para que se ajuste
+                  children: [
+                    const Text(
+                      "Nota de voz",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 20.0),
+                    // Indicador de grabación
+                    if (_isRecording)
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.mic, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text("Grabando...", style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    const SizedBox(height: 20.0),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        // Ya no cerramos el modal
+                        if (_isRecording) {
+                          await _stopRecording();
+                        } else {
+                          await _startRecording();
+                        }
+                        // Actualizamos solo el modal
+                        modalSetState(() {}); 
+                      },
+                      icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                      label: Text(
+                        _isRecording ? 'Detener grabación' : 'Iniciar grabación',
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    ElevatedButton(
+                      // Solo habilitamos el botón si no se está grabando
+                      onPressed: _isRecording ? null : () async { 
+                        // Guardamos el Navigator ANTES del await
+                        final navigator = Navigator.of(context);
+                        
+                        await _uploadAudioFile(); 
+                        
+                        // Cerramos el modal DESPUÉS de subir
+                        navigator.pop();
+                      },
+                      child: const Text(
+                        'Subir Audio',
+                        style: TextStyle(
+                            fontSize: 16.0, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20.0),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    if (!_isRecording) {
-                      _uploadAudioFile();
-                    }
-                  },
-                  child: const Text(
-                    'Subir Audio',
-                    style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  // --- FIN DE LA CORRECCIÓN ---
+  
+  // --- FIN MÉTODOS DE AUDIO ---
 
   Future<void> _initialize() async {
     await _getMyUsername();
@@ -288,7 +329,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
   }
 
-  // --- WIDGET DE MENSAJE (Con diseño y márgenes nuevos) ---
   Widget _chatMessageTile({
     required String message,
     required bool sendByMe,
@@ -299,7 +339,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     String? replyText,
     String? replySenderApodo,
   }) {
-    const double avatarRadius = 25; // <-- Radio de 25
+    const double avatarRadius = 25; 
     const double avatarPadding = 8;
     const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding; // 58px
 
@@ -505,7 +545,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
           // SPACER (Lado Derecho)
           if (sendByMe)
-            const SizedBox.shrink() // <-- Corregido
+             const SizedBox.shrink()
           else
             const SizedBox(width: avatarTotalSpace),
         ],
@@ -551,10 +591,10 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 return false; 
               },
               background: Container(
-                color: const Color(0xffD32323).withOpacity(0.1), // <-- Tu color
+                color: const Color(0xffD32323).withOpacity(0.1),
                 padding: const EdgeInsets.only(left: 28),
                 alignment: Alignment.centerLeft,
-                child: const Icon(Icons.reply, color: Color(0xffD32323)), // <-- Tu color
+                child: const Icon(Icons.reply, color: Color(0xffD32323)),
               ),
               child: _chatMessageTile(
                 message: ds["message"],
@@ -585,7 +625,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.reply, size: 20, color: Color(0xffD32323)), // <-- Tu color
+          const Icon(Icons.reply, size: 20, color: Color(0xffD32323)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -595,7 +635,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   "Respondiendo a $_replyToMessageSenderApodo",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xffD32323), // <-- Tu color
+                    color: Color(0xffD32323),
                   ),
                 ),
                 Text(
@@ -618,14 +658,14 @@ class _GroupChatPageState extends State<GroupChatPage> {
   Widget _buildInputArea() {
     if (!_isUserInGroup) {
       return Container(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 40, top: 10), // <-- Tu padding
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 40, top: 10),
         child: SizedBox(
           width: double.infinity,
           height: 55,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _joinGroup,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Tu color
+              backgroundColor: const Color.fromARGB(255, 156, 50, 50),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -650,7 +690,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 60.0), // <-- Tu margin
+      margin: const EdgeInsets.only(bottom: 60.0),
       padding: const EdgeInsets.symmetric(
         horizontal: 12.0,
         vertical: 10.0,
