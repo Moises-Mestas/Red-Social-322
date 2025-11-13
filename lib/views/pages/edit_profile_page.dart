@@ -321,10 +321,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+      backgroundColor: const Color.fromARGB(255, 156, 50, 50),
       appBar: AppBar(
-        title: const Text("Editar Perfil"),
-        backgroundColor: const Color.fromARGB(255, 79, 191, 219),
+        title: const Text("Editar Perfil",
+        style: TextStyle(
+            color: Colors.white, // O el color que prefieras
+            fontWeight: FontWeight.bold,
+        ),
+        ),
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+        foregroundColor: Colors.white,
         actions: [
           if (_isLoading)
             const Padding(
@@ -373,7 +379,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(100),
                             border: Border.all(
-                              color: const Color.fromARGB(255, 79, 191, 219),
+                              color: const Color.fromARGB(255, 156, 50, 50),
                               width: 5,
                             ),
                             boxShadow: [
@@ -584,7 +590,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 79, 191, 219),
+            color: Color.fromARGB(255, 156, 50, 50),
           ),
         ),
         const SizedBox(height: 5),
@@ -627,7 +633,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 79, 191, 219),
+            color: Color.fromARGB(255, 156, 50, 50),
           ),
         ),
         const SizedBox(height: 5),
@@ -662,7 +668,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 79, 191, 219),
+            color: Color.fromARGB(255, 156, 50, 50),
           ),
         ),
         const SizedBox(height: 5),
@@ -698,7 +704,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 79, 191, 219),
+            color: Color.fromARGB(255, 156, 50, 50),
           ),
         ),
         const SizedBox(height: 5),
@@ -753,7 +759,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 79, 191, 219),
+            color: Color.fromARGB(255, 156, 50, 50),
           ),
         ),
         const SizedBox(height: 5),

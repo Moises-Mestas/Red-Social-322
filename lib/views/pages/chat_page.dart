@@ -13,7 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_application_3/views/pages/home_page.dart';
-import 'package:flutter_application_3/views/pages/user_profile_page.dart'; // <-- IMPORTANTE AÑADIR ESTE
+import 'package:flutter_application_3/views/pages/user_profile_page.dart'; 
 
 class ChatPage extends StatefulWidget {
   final String name, profileurl, username;
@@ -39,15 +39,20 @@ class _ChatPageState extends State<ChatPage> {
   String? _myUsername, _myName, _myEmail, _myPicture, _chatRoomId;
   File? _selectedImage;
 
-  // --- Variables de estado para respuesta ---
   String? _replyToMessageId;
   String? _replyToMessageText;
   String? _replyToMessageSenderApodo;
 
-  // Variables para grabación de voz
   bool _isRecording = false;
   String? _filePath;
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  
+  @override
+  void dispose() {
+    _recorder.closeRecorder();
+    _messageController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -92,7 +97,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // --- Métodos para manejar respuestas ---
   void _startReply(String messageId, String messageText, String senderApodo) {
     setState(() {
       _replyToMessageId = messageId;
@@ -108,20 +112,28 @@ class _ChatPageState extends State<ChatPage> {
       _replyToMessageSenderApodo = null;
     });
   }
-  // ---------------------------------------------
 
-  // Métodos para grabación de voz
   Future<void> _startRecording() async {
-    // ... (código sin cambios) ...
+    await _recorder.startRecorder(toFile: _filePath);
+    setState(() {
+      _isRecording = true;
+    });
   }
 
   Future<void> _stopRecording() async {
-    // ... (código sin cambios) ...
+    await _recorder.stopRecorder();
+    setState(() {
+      _isRecording = false;
+    });
   }
 
   Future<void> _uploadAudioFile() async {
     if (_filePath == null) return;
-    // ... (SnackBar) ...
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Subiendo nota de voz..."))
+    );
+
     try {
       File file = File(_filePath!);
       TaskSnapshot snapshot = await FirebaseStorage.instance
@@ -137,15 +149,21 @@ class _ChatPageState extends State<ChatPage> {
         replyToMessageText: _replyToMessageText,
         replyToMessageSenderApodo: _replyToMessageSenderApodo,
       );
-      _cancelReply(); // Limpiar respuesta
+      _cancelReply(); 
     } catch (e) {
-      // ... (manejo de error) ...
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error al subir audio: $e"), backgroundColor: Colors.red)
+      );
     }
   }
 
   Future<void> _uploadImage() async {
     if (_selectedImage == null) return;
-    // ... (SnackBar) ...
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Subiendo imagen..."))
+    );
+
     try {
       await _chatController.sendImageMessage(
         chatRoomId: _chatRoomId!,
@@ -156,9 +174,15 @@ class _ChatPageState extends State<ChatPage> {
         replyToMessageText: _replyToMessageText,
         replyToMessageSenderApodo: _replyToMessageSenderApodo,
       );
-      _cancelReply(); // Limpiar respuesta
+      _cancelReply();
     } catch (e) {
-      // ... (manejo de error) ...
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error al subir imagen: $e"), backgroundColor: Colors.red)
+      );
+    } finally {
+      setState(() {
+        _selectedImage = null; // Limpiar imagen seleccionada
+      });
     }
   }
 
@@ -169,7 +193,7 @@ class _ChatPageState extends State<ChatPage> {
     );
     if (image == null) return;
     setState(() => _selectedImage = File(image.path));
-    await _uploadImage();
+    await _uploadImage(); // Subir automáticamente al seleccionar
   }
 
   Future<void> _sendMessage() async {
@@ -184,12 +208,10 @@ class _ChatPageState extends State<ChatPage> {
         replyToMessageSenderApodo: _replyToMessageSenderApodo,
       );
       _messageController.clear();
-      _cancelReply(); // Limpiar respuesta
+      _cancelReply();
     }
   }
 
-  // --- WIDGET REDISEÑADO ---
-  // --- WIDGET COMPLETAMENTE REDISEÑADO ---
   Widget _chatMessageTile({
     required String message,
     required bool sendByMe,
@@ -243,62 +265,68 @@ class _ChatPageState extends State<ChatPage> {
       );
     }
 
-    // Widget para el mensaje respondido (si existe)
+    // --- INICIO DE LA MODIFICACIÓN: Nuevo diseño de 'replyWidget' ---
     Widget replyWidget = const SizedBox.shrink();
     if (replyText != null && replySenderApodo != null) {
-      replyWidget = Container(
-        padding: const EdgeInsets.all(8),
-        margin: const EdgeInsets.only(bottom: 4),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.1),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(12),
-            topRight: Radius.circular(12),
+      replyWidget = Padding(
+        // 1. Padding para separarlo del borde de la burbuja
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            // 2. Color de fondo semi-transparente
+            color: Colors.black.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+            // 3. Barra lateral distintiva
+            border: Border(
+              left: BorderSide(
+                color: Colors.white.withOpacity(0.7), // Color de la barra
+                width: 4,
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Respondiendo a $replySenderApodo",
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 4. Nombre del remitente original (en negrita)
+              Text(
+                replySenderApodo,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              replyText,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 12,
+              const SizedBox(height: 4),
+              // 5. Texto del mensaje original (con elipsis)
+              Text(
+                replyText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 13,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
+    // --- FIN DE LA MODIFICACIÓN ---
 
-    // --- INICIO DE LA MODIFICACIÓN ---
-    
-    // Define el tamaño de la foto y su padding
     const double avatarRadius = 25;
     const double avatarPadding = 8;
-    // El espacio total que ocupa la columna del avatar es: (radio * 2) + padding
     const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding;
 
     return Container(
-      // 1. Este padding aplica el MARGEN DE PANTALLA (12px en ambos lados)
       padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4),
       child: Row(
         mainAxisAlignment:
             sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // 2. FOTO o SPACER (Lado Izquierdo)
+          // FOTO o SPACER (Lado Izquierdo)
           if (!sendByMe)
             GestureDetector(
               onTap: () {
@@ -312,9 +340,9 @@ class _ChatPageState extends State<ChatPage> {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.only(right: avatarPadding), // 8px
+                padding: const EdgeInsets.only(right: avatarPadding), 
                 child: CircleAvatar(
-                  radius: avatarRadius, // 22px (total 44px)
+                  radius: avatarRadius, 
                   backgroundImage: senderPicture.isNotEmpty
                       ? NetworkImage(senderPicture)
                       : null,
@@ -324,10 +352,9 @@ class _ChatPageState extends State<ChatPage> {
               ),
             )
           else
-            // Si el mensaje es mío, dejo un espacio vacío del mismo tamaño
-            const SizedBox(width: avatarTotalSpace), // 52px
+            const SizedBox(width: avatarTotalSpace), 
 
-          // 3. COLUMNA DEL MENSAJE (Flexible)
+          // COLUMNA DEL MENSAJE (Flexible)
           Flexible(
             child: Column(
               crossAxisAlignment:
@@ -347,7 +374,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
 
-                // GLOBO DEL MENSAJE
+                // --- INICIO DE LA MODIFICACIÓN: Estructura del globo ---
                 Container(
                   decoration: BoxDecoration(
                     color: sendByMe ? const Color.fromARGB(209, 134, 56, 42) : const Color(0xffD32323),
@@ -362,6 +389,8 @@ class _ChatPageState extends State<ChatPage> {
                           : const Radius.circular(0),
                     ),
                   ),
+                  // Usamos ClipRRect para que el color de fondo de la respuesta
+                  // respete los bordes redondeados de la burbuja
                   child: ClipRRect(
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
@@ -376,15 +405,22 @@ class _ChatPageState extends State<ChatPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        replyWidget,
+                        // 1. El widget de respuesta (se mostrará si no es nulo)
+                        replyWidget, 
+                        
+                        // 2. El contenido del mensaje principal
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          // Ajustamos el padding si hay respuesta o no
+                          padding: (replyText != null && replySenderApodo != null) 
+                              ? const EdgeInsets.fromLTRB(12, 4, 12, 12) // Menos padding superior si hay respuesta
+                              : const EdgeInsets.all(12), // Padding normal
                           child: messageContent,
                         ),
                       ],
                     ),
                   ),
                 ),
+                // --- FIN DE LA MODIFICACIÓN ---
 
                 // HORA
                 Padding(
@@ -402,21 +438,15 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
 
-          // 4. SPACER (Lado Derecho)
+          // SPACER (Lado Derecho)
           if (sendByMe)
-            // Si el mensaje es mío, no hay avatar, así que no pongo padding
             const SizedBox.shrink() 
           else
-            // Si el mensaje es del OTRO, dejo un espacio vacío
-            // para que su burbuja no se estire hasta el borde
-            const SizedBox(width: avatarTotalSpace), // 52px
+            const SizedBox(width: avatarTotalSpace),
         ],
       ),
     );
-    // --- FIN DE LA MODIFICACIÓN ---
   }
-
-// ... (El resto de tu archivo chat_page.dart no cambia) ...
 
   Widget _chatMessageList() {
     return StreamBuilder(
@@ -444,26 +474,23 @@ class _ChatPageState extends State<ChatPage> {
               replySender = null;
             }
 
-            // --- INICIO DE LA MODIFICACIÓN (Swipe to Reply) ---
             return Dismissible(
-              key: Key(ds.id), // Clave única para el widget
-              direction: DismissDirection.startToEnd, // Solo deslizar de izq a der
+              key: Key(ds.id), 
+              direction: DismissDirection.startToEnd,
               
-              // Esta es la función que se llama al deslizar
               confirmDismiss: (direction) async {
                 _startReply(ds.id, ds["message"], ds["sendBy"]);
-                return false; // Retorna falso para NO eliminar el mensaje
+                return false; 
               },
               
-              // Fondo que aparece al deslizar
               background: Container(
-                color: Colors.blue.withOpacity(0.1),
+                // Color de fondo al deslizar (ahora usa tu color rojo)
+                color: const Color(0xffD32323).withOpacity(0.1),
                 padding: const EdgeInsets.only(left: 28),
                 alignment: Alignment.centerLeft,
-                child: const Icon(Icons.reply, color: Colors.blue),
+                child: const Icon(Icons.reply, color: Color(0xffD32323)),
               ),
               
-              // Tu widget de mensaje normal
               child: _chatMessageTile(
                 message: ds["message"],
                 sendByMe: isMe,
@@ -475,50 +502,47 @@ class _ChatPageState extends State<ChatPage> {
                 replySenderApodo: replySender,
               ),
             );
-            // --- FIN DE LA MODIFICACIÓN ---
           },
         );
       },
     );
   }
 
-  // ... (El resto de tu archivo: _openRecordingDialog, _buildReplyBanner, build(), etc. no cambian) ...
   Future<void> _openRecordingDialog() {
-    // ... (tu código no cambia) ...
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
         content: SingleChildScrollView(
           child: Column(
             children: [
-               const Text(
+              const Text(
                 "Nota de voz",
                 style: TextStyle(
                 color: Colors.black,
                 fontSize: 20.0,
                 fontWeight: FontWeight.bold,
                 ),
-                ),
-                const SizedBox(height: 20.0),
-                ElevatedButton.icon(
+              ),
+              const SizedBox(height: 20.0),
+              ElevatedButton.icon(
                 onPressed: () async {
-                Navigator.pop(context);
-                if (_isRecording) {
-                await _stopRecording();
-                } else {
-                await _startRecording();
-                }
+                  Navigator.pop(context);
+                  if (_isRecording) {
+                    await _stopRecording();
+                  } else {
+                    await _startRecording();
+                  }
                 },
                 icon: Icon(_isRecording ? Icons.stop : Icons.mic),
                 label: Text(
                 _isRecording ? 'Detener grabación' : 'Iniciar grabación',
                 style: const TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w600,
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w600,
                 ),
                 ),
-                ),
-                const SizedBox(height: 20.0),
+              ),
+              const SizedBox(height: 20.0),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -527,9 +551,9 @@ class _ChatPageState extends State<ChatPage> {
                   }
                 },
                 child: const Text(
-              'Subir Audio',
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-              ),
+                'Subir Audio',
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -550,7 +574,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.reply, size: 20, color: Colors.blue),
+          const Icon(Icons.reply, size: 20, color: Color(0xffD32323)), // <-- Color cambiado
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -560,7 +584,7 @@ class _ChatPageState extends State<ChatPage> {
                   "Respondiendo a $_replyToMessageSenderApodo",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Color(0xffD32323), // <-- Color cambiado
                   ),
                 ),
                 Text(
@@ -583,7 +607,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+      backgroundColor: const Color(0xffD32323), // <-- Color principal
       body: Container(
         margin: const EdgeInsets.only(top: 40.0),
         child: Column(
@@ -647,7 +671,8 @@ class _ChatPageState extends State<ChatPage> {
                       children: [
                         _buildReplyBanner(), 
                         Container(
-                          margin: const EdgeInsets.only(bottom: 50.0),
+                          // Aplicamos el padding/margin que solicitaste
+                          margin: const EdgeInsets.only(bottom: 60.0), 
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12.0,
                             vertical: 10.0,
@@ -729,11 +754,5 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _recorder.closeRecorder();
-    super.dispose();
   }
 }

@@ -1,6 +1,5 @@
 // lib/views/pages/group_chat_page.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/views/pages/group_info_page.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,11 +9,11 @@ import 'package:flutter_application_3/controllers/group_controller.dart';
 import 'package:flutter_application_3/services/shared_pref_service.dart'; 
 import 'package:flutter_application_3/views/pages/user_profile_page.dart'; 
 
-// --- Imports para el grabador de audio (copiado de chat_page) ---
+// --- Imports para el grabador de audio ---
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:firebase_storage/firebase_storage.dart'; // <-- Añadido para subir audio
+import 'package:firebase_storage/firebase_storage.dart';
 // -----------------------------------------------------------
 
 class GroupChatPage extends StatefulWidget {
@@ -49,11 +48,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
   String? _replyToMessageText;
   String? _replyToMessageSenderApodo;
 
-  // --- Variables de audio (copiadas de chat_page) ---
   bool _isRecording = false;
   String? _filePath;
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
-  // --------------------------------------------------
 
   @override
   void initState() {
@@ -69,7 +66,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
     super.dispose();
   }
   
-  // --- MÉTODOS DE AUDIO ---
   Future<void> _initializeAudio() async {
     await _recorder.openRecorder();
     await _requestPermission();
@@ -162,7 +158,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   onPressed: () {
                     Navigator.pop(context);
                     if (!_isRecording) {
-                      _uploadAudioFile(); // <-- Llamar a la función de subida
+                      _uploadAudioFile();
                     }
                   },
                   child: const Text(
@@ -175,7 +171,6 @@ class _GroupChatPageState extends State<GroupChatPage> {
           ),
         ),
       );
-  // --- FIN MÉTODOS DE AUDIO ---
 
   Future<void> _initialize() async {
     await _getMyUsername();
@@ -304,8 +299,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     String? replyText,
     String? replySenderApodo,
   }) {
-    // --- LÓGICA DE DISEÑO COPIADA DE CHAT_PAGE ---
-    const double avatarRadius = 25;
+    const double avatarRadius = 25; // <-- Radio de 25
     const double avatarPadding = 8;
     const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding; // 58px
 
@@ -351,46 +345,53 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
     }
 
+    // --- INICIO DE LA MODIFICACIÓN: Nuevo diseño de 'replyWidget' ---
     Widget replyWidget = const SizedBox.shrink();
     if (replyText != null && replySenderApodo != null) {
-      replyWidget = Container(
-        padding: const EdgeInsets.all(8),
-        margin: const EdgeInsets.only(bottom: 4),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.1),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(12),
-            topRight: Radius.circular(12),
+      replyWidget = Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border(
+              left: BorderSide(
+                color: Colors.white.withOpacity(0.7),
+                width: 4,
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Respondiendo a $replySenderApodo",
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                replySenderApodo,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              replyText,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 12,
+              const SizedBox(height: 4),
+              Text(
+                replyText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 13,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
+    // --- FIN DE LA MODIFICACIÓN ---
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4), // <-- MÁRGENES
+      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4), 
       child: Row(
         mainAxisAlignment:
             sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -447,8 +448,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 // GLOBO DEL MENSAJE
                 Container(
                   decoration: BoxDecoration(
-                    color: sendByMe ? const Color.fromARGB(209, 134, 56, 42) : const Color.fromARGB(255, 156, 50, 50)
-,
+                    color: sendByMe ? const Color.fromARGB(209, 134, 56, 42) : const Color(0xffD32323),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
                       bottomRight: sendByMe
@@ -474,9 +474,12 @@ class _GroupChatPageState extends State<GroupChatPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        replyWidget,
+                        replyWidget, // <-- Se muestra aquí
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          // Padding condicional
+                          padding: (replyText != null && replySenderApodo != null) 
+                              ? const EdgeInsets.fromLTRB(12, 4, 12, 12)
+                              : const EdgeInsets.all(12),
                           child: messageContent,
                         ),
                       ],
@@ -502,7 +505,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
           // SPACER (Lado Derecho)
           if (sendByMe)
-             const SizedBox.shrink()
+            const SizedBox.shrink() // <-- Corregido
           else
             const SizedBox(width: avatarTotalSpace),
         ],
@@ -548,10 +551,10 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 return false; 
               },
               background: Container(
-                color: Colors.blue.withOpacity(0.1),
+                color: const Color(0xffD32323).withOpacity(0.1), // <-- Tu color
                 padding: const EdgeInsets.only(left: 28),
                 alignment: Alignment.centerLeft,
-                child: const Icon(Icons.reply, color: Colors.blue),
+                child: const Icon(Icons.reply, color: Color(0xffD32323)), // <-- Tu color
               ),
               child: _chatMessageTile(
                 message: ds["message"],
@@ -582,7 +585,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.reply, size: 20, color: Colors.blue),
+          const Icon(Icons.reply, size: 20, color: Color(0xffD32323)), // <-- Tu color
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -592,7 +595,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   "Respondiendo a $_replyToMessageSenderApodo",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Color(0xffD32323), // <-- Tu color
                   ),
                 ),
                 Text(
@@ -612,21 +615,17 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
-  // --- WIDGET _buildInputArea MODIFICADO (Del Código 2) ---
   Widget _buildInputArea() {
-    // Verifica si no está en el grupo
     if (!_isUserInGroup) {
       return Container(
-        // --- MODIFICACIÓN: Padding/Margin para subir el botón ---
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 10),
-        margin: const EdgeInsets.only(bottom: 100.0), // <-- Controla la altura desde abajo
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 40, top: 10), // <-- Tu padding
         child: SizedBox(
           width: double.infinity,
           height: 55,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _joinGroup,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 156, 50, 50),
+              backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Tu color
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -650,10 +649,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
     }
 
-    // Código original para enviar mensajes (si está en el grupo)
     return Container(
-      // --- MODIFICACIÓN: Padding/Margin para subir la barra de chat ---
-      margin: const EdgeInsets.only(bottom: 55.0), // <-- Controla la altura desde abajo
+      margin: const EdgeInsets.only(bottom: 60.0), // <-- Tu margin
       padding: const EdgeInsets.symmetric(
         horizontal: 12.0,
         vertical: 10.0,
@@ -665,8 +662,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 156, 50, 50)
-,
+                color: const Color(0xffD32323),
                 borderRadius: BorderRadius.circular(60),
               ),
               child: const Icon(
@@ -698,8 +694,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                   suffixIcon: IconButton(
                     icon: const Icon(
                       Icons.attach_file,
-                      color: Color.fromARGB(255, 156, 50, 50)
-,
+                      color: Color(0xffD32323),
                     ),
                     onPressed: _getImage,
                     tooltip: 'Adjuntar imagen',
@@ -714,8 +709,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 156, 50, 50)
-,
+                color: const Color(0xffD32323),
                 borderRadius: BorderRadius.circular(60),
               ),
               child: const Icon(
@@ -730,11 +724,10 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 156, 50, 50)
-,
+      backgroundColor: const Color(0xffD32323),
       appBar: AppBar(
         title: Text(
           widget.groupName,
@@ -743,8 +736,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
-,
+        backgroundColor: const Color(0xffD32323),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -778,7 +770,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
             Column(
               children: [
                 _buildReplyBanner(),
-                _buildInputArea(), // <-- Este widget ahora maneja su propio padding/margin
+                _buildInputArea(),
               ],
             )
           ],

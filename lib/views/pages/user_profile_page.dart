@@ -449,26 +449,28 @@ class _UserProfilePageState extends State<UserProfilePage> {
     super.dispose();
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Cargando perfil...'),
-            ],
-          ),
-        ),
-      );
-    }
-
+    // 1. Estructura base: Devolvemos el Scaffold inmediatamente.
     return Scaffold(
       backgroundColor: Colors.white,
-      // --- APPBAR CORREGIDO (DEL CÓDIGO 2) ---
+      
+      // 2. AppBar: Se muestra siempre, incluso cargando.
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -480,10 +482,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
             );
           },
         ),
-        title: Text(widget.username),
+        // Usamos widget.username porque _userData podría ser null al inicio
+        title: Text(widget.username), 
         centerTitle: true,
-        backgroundColor:
-            Colors.transparent, // Color base transparente para el gradiente
+        backgroundColor: Colors.transparent, // Transparente para ver el gradiente
         elevation: 0,
         titleTextStyle: const TextStyle(
           color: Colors.white,
@@ -495,8 +497,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color.fromARGB(255, 156, 50, 50), // Tu color rojo
-                Color(0xff9A1C1C), // Un rojo más oscuro
+                Color.fromARGB(255, 156, 50, 50), // Tu rojo original
+                Color(0xff9A1C1C), // Rojo más oscuro
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -504,105 +506,114 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ),
         ),
         actions: [
-          if (_myUsername != widget.username)
+          // Solo mostramos opciones si YA cargó y NO es mi perfil
+          if (!_isLoading && !_isMyProfile)
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: _showFollowOptions,
             ),
         ],
       ),
-      // --- FIN DEL APPBAR ---
 
-      body: RefreshIndicator(
-        onRefresh: _loadAllData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              // HEADER DEL PERFIL
-              Padding(
-                padding: const EdgeInsets.all(16),
+      // 3. Body: Aquí está la lógica clave del "Código 2".
+      // Si está cargando, muestra el spinner. Si no, muestra el contenido.
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadAllData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        // FOTO DE PERFIL
-                        CircleAvatar(
-                          radius: 45,
-                          backgroundImage: NetworkImage(
-                            _userData['Image'] ??
-                                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-
-                        // ESTADÍSTICAS
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    // --- HEADER DEL PERFIL ---
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Row(
                             children: [
-                              // --- MODIFICADO: _postsCount ahora tiene valor ---
-                              _buildStatItem(_postsCount, 'Publicaciones'),
-                              GestureDetector(
-                                onTap: () => _showFollowList(true),
-                                child:
-                                    _buildStatItem(_followersCount, 'Seguidores'),
+                              // Foto de Perfil
+                              CircleAvatar(
+                                radius: 45,
+                                backgroundImage: NetworkImage(
+                                  _userData['Image'] ??
+                                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+                                ),
+                                // Color de fondo por si falla la imagen
+                                backgroundColor: Colors.grey[300], 
                               ),
-                              GestureDetector(
-                                onTap: () => _showFollowList(false),
-                                child:
-                                    _buildStatItem(_followingCount, 'Siguiendo'),
+                              const SizedBox(width: 20),
+
+                              // Estadísticas
+                              Expanded(
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildStatItem(
+                                        _postsCount, 'Publicaciones'),
+                                    GestureDetector(
+                                      onTap: () => _showFollowList(true),
+                                      child: _buildStatItem(
+                                          _followersCount, 'Seguidores'),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => _showFollowList(false),
+                                      child: _buildStatItem(
+                                          _followingCount, 'Siguiendo'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                    // BIO
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _userData['Name'] ?? 'Usuario',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                          // BIO y Nombre Real
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _userData['Name'] ?? 'Usuario',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _buildBio(),
+                                  style: const TextStyle(
+                                      fontSize: 14, height: 1.4),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildAdditionalInfo(),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _buildBio(),
-                            style: const TextStyle(fontSize: 14, height: 1.4),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildAdditionalInfo(),
+
+                          const SizedBox(height: 16),
+
+                          // Botones de Acción
+                          if (_isMyProfile)
+                            _buildEditProfileButton()
+                          else
+                            _buildActionButtons(),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // BOTONES (Lógica de "Editar Perfil" vs "Seguir")
-                    if (_isMyProfile)
-                      _buildEditProfileButton()
-                    else
-                      _buildActionButtons(),
+                    // --- TABS Y CONTENIDO (GRID) ---
+                    _buildProfileTabs(),
+                    _buildTabContent(),
                   ],
                 ),
               ),
+            ),
 
-              // TABS Y CONTENIDO
-              _buildProfileTabs(),
-              _buildTabContent(), // <-- Este widget ahora mostrará el Grid
-            ],
-          ),
-        ),
-      ),
 
       // --- AÑADIDO: FloatingActionButton ---
       floatingActionButton: _isMyProfile
