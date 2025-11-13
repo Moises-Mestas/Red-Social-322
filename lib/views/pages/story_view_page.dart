@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_3/controllers/story_controller.dart';
+import 'package:flutter_application_3/views/pages/user_profile_page.dart'; // <-- Importar UserProfilePage
 import 'package:timeago/timeago.dart' as timeago;
 
 class StoryViewPage extends StatefulWidget {
@@ -27,13 +28,17 @@ class _StoryViewPageState extends State<StoryViewPage> {
   Future<void> _loadStories() async {
     try {
       final snapshot = await _storyController.getActiveStoriesStream(widget.userId).first;
-      setState(() {
-        _stories = snapshot.docs;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _stories = snapshot.docs;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print("Error cargando historias: $e");
-      Navigator.pop(context); // Salir si hay error
+      if (mounted) {
+        Navigator.pop(context); // Salir si hay error
+      }
     }
   }
 
@@ -50,7 +55,17 @@ class _StoryViewPageState extends State<StoryViewPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _stories.isEmpty
-              ? const Center(child: Text("No hay historias", style: TextStyle(color: Colors.white)))
+              ? Center(
+                  child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("No hay historias activas", style: TextStyle(color: Colors.white)),
+                    TextButton(
+                      child: const Text("Volver"),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  ],
+                ))
               : PageView.builder(
                   controller: _pageController,
                   itemCount: _stories.length,
@@ -100,6 +115,7 @@ class _StoryViewPageState extends State<StoryViewPage> {
                 if (progress == null) return child;
                 return const Center(child: CircularProgressIndicator());
               },
+              errorBuilder: (c,e,s) => const Center(child: Icon(Icons.error, color: Colors.white)),
             )
           else
             Container(color: Colors.deepPurple), // Color de fondo para historias de texto
@@ -114,7 +130,7 @@ class _StoryViewPageState extends State<StoryViewPage> {
                 child: Text(
                   text,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius: 10)]),
                 ),
               ),
             ),
@@ -127,12 +143,33 @@ class _StoryViewPageState extends State<StoryViewPage> {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundImage: userImageUrl.isNotEmpty ? NetworkImage(userImageUrl) : null,
-                      child: userImageUrl.isEmpty ? const Icon(Icons.person) : null,
+                    // --- INICIO DE LA MODIFICACIÓN ---
+                    // Envolvemos la foto y el nombre en un GestureDetector
+                    GestureDetector(
+                      onTap: () {
+                        // 1. Cerramos el visor de historias
+                        Navigator.pop(context);
+                        // 2. Navegamos a la página de perfil
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfilePage(username: username),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundImage: userImageUrl.isNotEmpty ? NetworkImage(userImageUrl) : null,
+                            child: userImageUrl.isEmpty ? const Icon(Icons.person) : null,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(username, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    Text(username, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    // --- FIN DE LA MODIFICACIÓN ---
+
                     const SizedBox(width: 10),
                     Text(timeAgo, style: const TextStyle(color: Colors.white70, fontSize: 14)),
                     const Spacer(),
