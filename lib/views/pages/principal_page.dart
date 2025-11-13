@@ -16,6 +16,9 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:flutter_application_3/controllers/followers_controller.dart';
 import 'package:flutter_application_3/views/pages/grupos_page.dart';
 import 'package:flutter_application_3/views/pages/profile_page.dart';
+// --- Imports para Historias (AÑADIDOS DE CÓDIGO 2) ---
+import 'package:flutter_application_3/controllers/story_controller.dart';
+import 'package:flutter_application_3/views/pages/story_view_page.dart';
 // ------------------------
 
 class PrincipalPage extends StatefulWidget {
@@ -261,8 +264,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
-, // Color rojo
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
         elevation: 0,
       ),
       body: Column(
@@ -309,13 +311,11 @@ class _PrincipalPageState extends State<PrincipalPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreatePostModal,
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
-, // Color rojo
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
-, // Color rojo
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),
@@ -350,7 +350,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
     );
   }
 
-  // --- WIDGET MODIFICADO (Implementación del Código 2) ---
+  // --- WIDGET _buildFollowingBar SIN CAMBIOS ---
   /// Construye la barra horizontal de usuarios seguidos
   Widget _buildFollowingBar() {
     if (_followingStream == null) {
@@ -397,15 +397,15 @@ class _PrincipalPageState extends State<PrincipalPage> {
             itemBuilder: (context, index) {
               var userDoc = docs[index].data() as Map<String, dynamic>;
 
-              // --- ¡CORRECCIÓN APLICADA! ---
-              // Eliminamos 'imageUrl' de aquí, ya que el widget
-              // _FollowingCircle lo obtendrá por sí mismo.
+              // --- ¡AQUÍ ESTÁ EL CAMBIO! ---
+              // Simplemente pasamos los datos al nuevo _FollowingCircle
+              // que ahora es el widget de "Código 2".
               return _FollowingCircle(
                 userId: userDoc['userId'],
                 username: userDoc['username'] ?? '...',
                 databaseService: _databaseService,
               );
-              // --- FIN DE LA CORRECCIÓN ---
+              // --- FIN DEL CAMBIO ---
             },
           );
         },
@@ -563,91 +563,90 @@ class _PrincipalPageState extends State<PrincipalPage> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter modalSetState) {
-            return Container(
-              margin: const EdgeInsets.fromLTRB(10, 20, 10, 60),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+            builder: (BuildContext context, StateSetter modalSetState) {
+          return Container(
+            margin: const EdgeInsets.fromLTRB(10, 20, 10, 60),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
               ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                  left: 20,
-                  right: 20,
-                  top: 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("Crear Publicación",
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: _textController,
-                      decoration: const InputDecoration(
-                        hintText: "¿Qué estás pensando?",
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 4,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Crear Publicación",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 15),
+                  TextField(
+                    controller: _textController,
+                    decoration: const InputDecoration(
+                      hintText: "¿Qué estás pensando?",
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 10),
-                    if (_imageToPost != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.file(
-                          _imageToPost!,
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 10),
+                  if (_imageToPost != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(
+                        _imageToPost!,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        TextButton.icon(
-                          icon: const Icon(Icons.image),
-                          label: const Text("Adjuntar Imagen"),
-                          onPressed: () async {
-                            final XFile? image = await _picker.pickImage(
-                                source: ImageSource.gallery);
-                            if (image != null) {
-                              modalSetState(() {
-                                _imageToPost = File(image.path);
-                              });
-                            }
-                          },
-                        ),
-                        ElevatedButton(
-                          child: const Text("Publicar"),
-                          onPressed: () async {
-                            if (_textController.text.isEmpty &&
-                                _imageToPost == null) {
-                              return;
-                            }
-
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Publicando...")));
-
-                            await _postController.createPost(
-                              _textController.text,
-                              _imageToPost,
-                            );
-
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          },
-                        ),
-                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.image),
+                        label: const Text("Adjuntar Imagen"),
+                        onPressed: () async {
+                          final XFile? image = await _picker.pickImage(
+                              source: ImageSource.gallery);
+                          if (image != null) {
+                            modalSetState(() {
+                              _imageToPost = File(image.path);
+                            });
+                          }
+                        },
+                      ),
+                      ElevatedButton(
+                        child: const Text("Publicar"),
+                        onPressed: () async {
+                          if (_textController.text.isEmpty &&
+                              _imageToPost == null) {
+                            return;
+                          }
+
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Publicando...")));
+
+                          await _postController.createPost(
+                            _textController.text,
+                            _imageToPost,
+                          );
+
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-            );
-          },
-        );
+            ),
+          );
+        });
       },
     );
   }
@@ -676,7 +675,7 @@ class _PrincipalPageState extends State<PrincipalPage> {
   }
 } // --- FIN DE LA CLASE _PrincipalPageState ---
 
-// --- WIDGET MODIFICADO (Implementación del Código 2) ---
+// --- WIDGET _FollowingCircle REEMPLAZADO (Implementación de Código 2) ---
 class _FollowingCircle extends StatefulWidget {
   final String userId;
   final String username;
@@ -693,91 +692,129 @@ class _FollowingCircle extends StatefulWidget {
 }
 
 class _FollowingCircleState extends State<_FollowingCircle> {
+  // Streams para ambos, presencia e historias
+  final StoryController _storyController = StoryController();
   Stream<DocumentSnapshot>? _userStream;
+  Stream<QuerySnapshot>? _storyStream;
 
   @override
   void initState() {
     super.initState();
+    // Inicializa ambos streams
     _userStream = widget.databaseService.getUserStream(widget.userId);
+    _storyStream = _storyController.getActiveStoriesStream(widget.userId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UserProfilePage(
-              username: widget.username,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        width: 80,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            StreamBuilder<DocumentSnapshot>(
-              stream: _userStream,
-              builder: (context, snapshot) {
-                bool isOnline = false;
-                String imageUrl = ''; // <-- Inicia vacío
+    // 1. StreamBuilder para Presencia e Imagen
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _userStream,
+      builder: (context, userSnapshot) {
+        bool isOnline = false;
+        String imageUrl = '';
 
-                if (snapshot.hasData && snapshot.data!.exists) {
-                  var data = snapshot.data!.data() as Map<String, dynamic>;
-                  isOnline =
-                      data.containsKey('isOnline') ? data['isOnline'] : false;
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+          var data = userSnapshot.data!.data() as Map<String, dynamic>;
+          isOnline = data.containsKey('isOnline') ? data['isOnline'] : false;
+          imageUrl = data.containsKey('Image') ? data['Image'] ?? '' : '';
+        }
 
-                  // --- ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA! ---
-                  // Leemos el campo 'Image' (con 'I' mayúscula, como en tu BD)
-                  imageUrl =
-                      data.containsKey('Image') ? data['Image'] ?? '' : '';
-                  // --- FIN DE LA LÓGICA ---
-                }
+        // 2. StreamBuilder anidado para Historias
+        return StreamBuilder<QuerySnapshot>(
+          stream: _storyStream,
+          builder: (context, storySnapshot) {
+            bool hasActiveStories =
+                storySnapshot.hasData && storySnapshot.data!.docs.isNotEmpty;
 
-                return Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: imageUrl.isNotEmpty
-                          ? NetworkImage(imageUrl) // <-- Usamos la foto del stream
-                          : null,
-                      child: imageUrl.isEmpty
-                          ? Icon(Icons.person, color: Colors.grey[400])
-                          : null,
+            // 3. GestureDetector anidado para la lógica de Tap
+            return GestureDetector(
+              onTap: () {
+                // Si tiene historias, verlas. Si no, ir al perfil.
+                if (hasActiveStories) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          StoryViewPage(userId: widget.userId),
                     ),
-                    if (isOnline)
-                      Positioned(
-                        bottom: 2,
-                        right: 2,
-                        child: Container(
-                          width: 15,
-                          height: 15,
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfilePage(
+                        username: widget.username,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                width: 80,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 4. Stack para la Foto + Borde + Círculo Verde
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // El borde (rojo si hay historias)
+                        Container(
+                          padding:
+                              const EdgeInsets.all(3), // Espacio para el borde
                           decoration: BoxDecoration(
-                            color: Colors.green,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: hasActiveStories
+                                ? Border.all(
+                                    color: const Color(0xffD32323), width: 3)
+                                : null, // Sin borde si no hay historias
+                          ),
+                          child: CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage: imageUrl.isNotEmpty
+                                ? NetworkImage(imageUrl)
+                                : null,
+                            child: imageUrl.isEmpty
+                                ? Icon(Icons.person, color: Colors.grey[400])
+                                : null,
                           ),
                         ),
-                      ),
+                        // El círculo verde de "en línea"
+                        if (isOnline)
+                          Positioned(
+                            bottom: 4, // Ajustado para el padding del borde
+                            right: 4, // Ajustado para el padding del borde
+                            child: Container(
+                              width: 15,
+                              height: 15,
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.username,
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.black87),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ],
-                );
-              },
-            ),
-            const SizedBox(height: 6),
-            Text(
-              widget.username,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ],
-        ),
-      ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1042,7 +1079,6 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
 
   Widget _buildCommentInputArea() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 60.0),
       padding: EdgeInsets.only(
         left: 16,
         right: 8,
@@ -1085,7 +1121,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                   decoration: InputDecoration(
                     hintText: _replyingToCommentId != null
                         ? "Escribe tu respuesta..."
-                        :"Añade un comentario...",
+                        : "Añade un comentario...",
                     border: InputBorder.none,
                   ),
                   textCapitalization: TextCapitalization.sentences,
@@ -1093,7 +1129,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
               ),
               IconButton(
                 icon: const Icon(Icons.send,
-                    color: Color(0xffD32323)),
+                    color: Color.fromARGB(255, 79, 191, 219)),
                 onPressed: _sendComment,
               ),
             ],
