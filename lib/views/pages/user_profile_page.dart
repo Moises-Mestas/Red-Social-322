@@ -19,10 +19,12 @@ import 'package:flutter_application_3/views/pages/edit_profile_page.dart';
 // --- AÑADIDO IMPORT (NUEVO) ---
 import 'package:flutter_application_3/views/widgets/followers_list_dialog.dart';
 
-// --- Imports añadidos para Publicaciones ---
+// --- Imports añadidos para Publicaciones e Historias ---
 import 'package:flutter_application_3/controllers/post_controller.dart';
+import 'package:flutter_application_3/controllers/story_controller.dart'; // <-- AÑADIDO
 import 'package:flutter_application_3/models/comment_model.dart';
 import 'package:flutter_application_3/models/post_model.dart';
+import 'package:flutter_application_3/views/pages/story_view_page.dart'; // <-- AÑADIDO
 import 'package:image_picker/image_picker.dart';
 import 'package:timeago/timeago.dart' as timeago;
 // ------------------------------------------
@@ -42,17 +44,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
   final DatabaseService _databaseService = DatabaseService();
   final SharedPrefService _sharedPrefService = SharedPrefService();
 
-  // --- AÑADIDO: Controladores y variables para posts ---
+  // --- Controladores y variables para posts e historias ---
   final PostController _postController = PostController();
+  final StoryController _storyController = StoryController(); // <-- AÑADIDO
   final ImagePicker _picker = ImagePicker();
-  File? _imageToPost;
+  File? _imageToPost; // Para Posts
+  File? _imageToStory; // <-- AÑADIDO: Para Historias
   final TextEditingController _textController = TextEditingController();
   // ---------------------------------------------------
 
   Map<String, dynamic> _userData = {};
   Map<String, dynamic> _userProfileData = {};
   String? _userId; // ID del perfil que se está viendo
-  String? _myUserId; // <-- AÑADIDO: ID del usuario logueado
+  String? _myUserId; // ID del usuario logueado
   String? _myUsername; // Mi propio apodo (para la barra de nav)
   int _followersCount = 0;
   int _followingCount = 0;
@@ -65,14 +69,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
   int _selectedIndex = 1;
   bool _isMyProfile = false;
 
+  // --- AÑADIDO: Stream para historias ---
+  Stream<QuerySnapshot>? _storyStream;
+  bool _hasActiveStories = false;
+  // ------------------------------------
+
   @override
   void initState() {
     super.initState();
-    _loadAllData(); // <-- Combinado _loadUserProfile y _checkIfThisIsMyProfile
-    timeago.setLocaleMessages('es', timeago.EsMessages()); // <-- AÑADIDO
+    _loadAllData();
+    timeago.setLocaleMessages('es', timeago.EsMessages());
   }
 
-  // --- MODIFICADO: Para cargar todo en una sola función ---
+  // --- MODIFICADO: Para cargar todo, incluyendo historias ---
   Future<void> _loadAllData() async {
     setState(() {
       _isLoading = true;
@@ -106,14 +115,18 @@ class _UserProfilePageState extends State<UserProfilePage> {
         }
 
         if (_userId != null) {
-          // Cargar contadores de posts (¡Asegúrate de que el índice de Firebase esté creado!)
+          // --- AÑADIDO: Inicializar stream de historias ---
+          _storyStream = _storyController.getActiveStoriesStream(_userId!);
+          // ----------------------------------------------
+
+          // Cargar contadores de posts
           try {
             final postSnapshot =
                 await _postController.getPostsForUserStream(_userId!).first;
             _postsCount = postSnapshot.docs.length;
           } catch (e) {
             print("Error al contar posts (revisa índice de Firebase): $e");
-            _postsCount = 0; // Continuar sin posts si falla
+            _postsCount = 0;
           }
 
           _followersCount = await _followController.getFollowersCount(_userId!);
@@ -143,6 +156,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
   // --- FIN DE LA MODIFICACIÓN ---
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  } // <-- CORRECCIÓN: Solo un dispose()
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
@@ -444,32 +463,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  @override
   Widget build(BuildContext context) {
     // 1. Estructura base: Devolvemos el Scaffold inmediatamente.
     return Scaffold(
       backgroundColor: Colors.white,
-      
+
       // 2. AppBar: Se muestra siempre, incluso cargando.
       appBar: AppBar(
         leading: IconButton(
@@ -483,7 +481,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           },
         ),
         // Usamos widget.username porque _userData podría ser null al inicio
-        title: Text(widget.username), 
+        title: Text(widget.username),
         centerTitle: true,
         backgroundColor: Colors.transparent, // Transparente para ver el gradiente
         elevation: 0,
@@ -515,8 +513,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         ],
       ),
 
-      // 3. Body: Aquí está la lógica clave del "Código 2".
-      // Si está cargando, muestra el spinner. Si no, muestra el contenido.
+      // 3. Body: Lógica de carga
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -532,16 +529,42 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         children: [
                           Row(
                             children: [
-                              // Foto de Perfil
-                              CircleAvatar(
-                                radius: 45,
-                                backgroundImage: NetworkImage(
-                                  _userData['Image'] ??
-                                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                                ),
-                                // Color de fondo por si falla la imagen
-                                backgroundColor: Colors.grey[300], 
+                              // --- INICIO DE MODIFICACIÓN: FOTO DE PERFIL (de Código 2) ---
+                              StreamBuilder<QuerySnapshot>(
+                                stream: _storyStream,
+                                builder: (context, snapshot) {
+                                  _hasActiveStories = snapshot.hasData &&
+                                      snapshot.data!.docs.isNotEmpty;
+
+                                  return GestureDetector(
+                                    onTap: _onProfilePicTap, // <-- Nueva función
+                                    child: Container(
+                                      padding: const EdgeInsets.all(
+                                          4), // Espacio para el borde
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        // Muestra el borde solo si hay historias
+                                        border: _hasActiveStories
+                                            ? Border.all(
+                                                color: const Color(0xffD32323),
+                                                width: 3)
+                                            : null,
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 45,
+                                        backgroundColor: Colors.grey[300],
+                                        backgroundImage: NetworkImage(
+                                          _userData['Image'] ??
+                                              'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
+                              // --- FIN DE MODIFICACIÓN: FOTO DE PERFIL ---
+
                               const SizedBox(width: 20),
 
                               // Estadísticas
@@ -614,16 +637,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ),
             ),
 
-
-      // --- AÑADIDO: FloatingActionButton ---
+      // --- FloatingActionButton ---
       floatingActionButton: _isMyProfile
           ? FloatingActionButton(
-              onPressed: _showCreatePostModal,
-              backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
+              onPressed: _showCreatePostModal, // Sigue creando posts
+              backgroundColor: const Color.fromARGB(255, 156, 50, 50),
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null, // No mostrar el botón si no es mi perfil
-      // ------------------------------------
 
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color.fromARGB(255, 156, 50, 50), // Color rojo
@@ -676,6 +697,24 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
     );
   }
+
+  // --- AÑADIDO: Método para decidir acción en foto de perfil ---
+  void _onProfilePicTap() {
+    if (_isMyProfile) {
+      // Si es mi perfil, muestro el modal para SUBIR historia
+      _showCreateStoryModal();
+    } else if (_hasActiveStories) {
+      // Si es otro perfil y TIENE historias, muestro el VISOR
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StoryViewPage(userId: _userId!),
+        ),
+      );
+    }
+    // Si es otro perfil y NO tiene historias, no hace nada.
+  }
+  // --- FIN WIDGET AÑADIDO ---
 
   Widget _buildEditProfileButton() {
     return Row(
@@ -850,7 +889,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  // --- WIDGET REEMPLAZADO (DEL CÓDIGO 2) ---
   Widget _buildTabContent() {
     // Si no es la primera pestaña (Grid), muestra el placeholder
     if (_selectedTab != 0) {
@@ -948,9 +986,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       },
     );
   }
-  // --- FIN DEL WIDGET REEMPLAZADO ---
 
-  // --- WIDGET AÑADIDO (Copiado de principal_page.dart) ---
   /// Muestra el modal para crear un post
   void _showCreatePostModal() {
     _textController.clear();
@@ -958,7 +994,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       _imageToPost = null;
     });
 
-    final scaffoldMessenger = ScaffoldMessenger.of(context); // <-- CORRECCIÓN
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -1042,9 +1078,125 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               _textController.text,
                               _imageToPost,
                             );
-                            
-                            // scaffoldMessenger.hideCurrentSnackBar(); // No es necesario si recargas
+
                             _loadAllData(); // <-- Recarga el perfil para ver el post nuevo
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // --- WIDGET AÑADIDO: Modal para CREAR HISTORIA (de Código 2) ---
+  void _showCreateStoryModal() {
+    _textController.clear();
+    setState(() {
+      _imageToStory = null; // Usamos la variable de historia
+    });
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter modalSetState) {
+            return Container(
+              margin: const EdgeInsets.fromLTRB(10, 20, 10, 60),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Crear Historia",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: _textController,
+                      decoration: const InputDecoration(
+                        hintText: "Escribe algo... (opcional)",
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 10),
+                    if (_imageToStory != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          _imageToStory!,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton.icon(
+                          icon: const Icon(Icons.image),
+                          label: Text(
+                              _imageToStory == null ? "Foto" : "Cambiar Foto"),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(
+                                source: ImageSource.gallery);
+                            if (image != null) {
+                              modalSetState(() {
+                                _imageToStory = File(image.path);
+                              });
+                            }
+                          },
+                        ),
+                        // (Aquí podrías añadir un botón para color de fondo)
+                        ElevatedButton(
+                          child: const Text("Publicar Historia"),
+                          onPressed: () async {
+                            if (_textController.text.isEmpty &&
+                                _imageToStory == null) {
+                              // No puedes publicar una historia vacía
+                              return;
+                            }
+
+                            final navigator = Navigator.of(context);
+                            navigator.pop(); // Cierra el modal
+
+                            scaffoldMessenger.showSnackBar(const SnackBar(
+                                content: Text("Publicando historia...")));
+
+                            try {
+                              await _storyController.createStory(
+                                _textController.text,
+                                _imageToStory,
+                              );
+                            } catch (e) {
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(
+                                    content: Text("Error: $e"),
+                                    backgroundColor: Colors.red),
+                              );
+                            }
+
+                            // No es necesario recargar, el StreamBuilder lo hará
                           },
                         ),
                       ],
@@ -1061,127 +1213,119 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
   // --- FIN DEL WIDGET ---
 
-  // --- WIDGET AÑADIDO (Copiado de principal_page.dart) ---
   /// Muestra el post completo en un diálogo
   Future<void> _showPostDetailDialog(PostModel post) {
     return showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          contentPadding: EdgeInsets.zero, // <-- MODIFICADO
-          content: _buildPostDetailWidget(post), // <-- MODIFICADO
-          actionsAlignment: MainAxisAlignment.center, // <-- AÑADIDO
+          contentPadding: EdgeInsets.zero,
+          content: _buildPostDetailWidget(post),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child:
-                  const Text('Cerrar', style: TextStyle(color: Color.fromARGB(255, 156, 50, 50))),
+              child: const Text('Cerrar',
+                  style: TextStyle(color: Color.fromARGB(255, 156, 50, 50))),
             )
           ],
         );
       },
     ).then((_) {
-      // --- AÑADIDO: Recargar datos después de cerrar el diálogo ---
-      // Esto actualiza el contador de likes/comentarios en el grid
+      // Recargar datos después de cerrar el diálogo
       _loadAllData();
-      // --- FIN DE LA ADICIÓN ---
     });
   }
-  // --- FIN DEL WIDGET ---
 
-/// Construye el widget del Post para el diálogo de detalle
-Widget _buildPostDetailWidget(PostModel post) {
-  // --- AÑADIDO: StatefulBuilder para que el like se actualice DENTRO del modal ---
-  return StatefulBuilder(
-    builder: (context, setStateInModal) {
-      bool isLiked = post.likes.contains(_myUserId);
-      String timeAgo = timeago.format(post.createdAt.toDate(), locale: 'es');
+  /// Construye el widget del Post para el diálogo de detalle
+  Widget _buildPostDetailWidget(PostModel post) {
+    return StatefulBuilder(
+      builder: (context, setStateInModal) {
+        bool isLiked = post.likes.contains(_myUserId);
+        String timeAgo = timeago.format(post.createdAt.toDate(), locale: 'es');
 
-      return Card(
-        margin: EdgeInsets.zero, // Sin margen dentro del diálogo
-        elevation: 0, // Sin sombra
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min, // Para que se ajuste al contenido
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundImage: NetworkImage(post.userImageUrl.isNotEmpty
-                        ? post.userImageUrl
-                        : 'https://via.placeholder.com/150'),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(post.userName,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text(timeAgo,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              if (post.text.isNotEmpty)
-                Text(post.text, style: const TextStyle(fontSize: 16)),
-
-              if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
-                const SizedBox(height: 10),
-
-                // Contenedor con límites definidos para la imagen
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    // Establece una altura máxima (350 píxeles)
-                    maxHeight: 350.0,
-                    // Ancho máximo para el ancho disponible del diálogo
-                    maxWidth: MediaQuery.of(context).size.width * 0.85,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10.0),
-                    child: Image.network(
-                      post.imageUrl!,
-                      fit: BoxFit.contain, // Usar contain para no recortar
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      },
-                      errorBuilder: (c, e, s) =>
-                          const Center(child: Text("Error al cargar imagen")),
+        return Card(
+          margin: EdgeInsets.zero, // Sin margen dentro del diálogo
+          elevation: 0, // Sin sombra
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // Para que se ajuste al contenido
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundImage: NetworkImage(post.userImageUrl.isNotEmpty
+                          ? post.userImageUrl
+                          : 'https://via.placeholder.com/150'),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(post.userName,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(timeAgo,
+                            style: const TextStyle(
+                                color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                if (post.text.isNotEmpty)
+                  Text(post.text, style: const TextStyle(fontSize: 16)),
+                if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  // Contenedor con límites definidos para la imagen
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      // Establece una altura máxima (350 píxeles)
+                      maxHeight: 350.0,
+                      // Ancho máximo para el ancho disponible del diálogo
+                      maxWidth: MediaQuery.of(context).size.width * 0.85,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10.0),
+                      child: Image.network(
+                        post.imageUrl!,
+                        fit: BoxFit.contain, // Usar contain para no recortar
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        },
+                        errorBuilder: (c, e, s) =>
+                            const Center(child: Text("Error al cargar imagen")),
+                      ),
                     ),
                   ),
-                ),
-              ], // <-- Cierre del List 'if (post.imageUrl != null) ...'
-
-              const SizedBox(height: 10),
-              Divider(),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.grey,
-                        ),
-                        onPressed: () async { // <-- ¡HACER ASÍNCRONO!
+                ],
+                const SizedBox(height: 10),
+                Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: isLiked ? Colors.red : Colors.grey,
+                          ),
+                          onPressed: () async {
                             // Lógica de Like
-                            await _postController.toggleLike(post.id, post.likes); // <-- ¡USAR AWAIT!
+                            await _postController.toggleLike(
+                                post.id, post.likes);
 
                             // Actualiza la UI del modal
                             setStateInModal(() {
@@ -1192,37 +1336,36 @@ Widget _buildPostDetailWidget(PostModel post) {
                               }
                             });
                           },
-                      ),
-                      Text("${post.likes.length}"),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.mode_comment_outlined,
-                            color: Colors.grey),
-                        onPressed: () {
-                          Navigator.pop(context); // Cierra el diálogo del post
-                          _showCommentsModal(
-                              context, post.id); // Abre el de comentarios
-                        },
-                      ),
-                      Text("${post.commentCount}"),
-                    ],
-                  ),
-                ],
-              )
-            ],
+                        ),
+                        Text("${post.likes.length}"),
+                      ],
+                    ),
+                    const SizedBox(width: 20),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.mode_comment_outlined,
+                              color: Colors.grey),
+                          onPressed: () {
+                            Navigator.pop(
+                                context); // Cierra el diálogo del post
+                            _showCommentsModal(context,
+                                post.id); // Abre el de comentarios
+                          },
+                        ),
+                        Text("${post.commentCount}"),
+                      ],
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  ); // <-- Cierre del StatefulBuilder
-}
-  // --- FIN DEL WIDGET ---
+        );
+      },
+    );
+  }
 
-  // --- WIDGET AÑADIDO (Copiado de principal_page.dart) ---
   /// Muestra el modal para ver y añadir comentarios
   void _showCommentsModal(BuildContext context, String postId) {
     showModalBottomSheet(
@@ -1245,16 +1388,13 @@ Widget _buildPostDetailWidget(PostModel post) {
         );
       },
     ).then((_) {
-      // --- AÑADIDO: Recargar datos después de cerrar el modal ---
+      // Recargar datos después de cerrar el modal
       _loadAllData();
-      // --- FIN DE LA ADICIÓN ---
     });
   }
-  // --- FIN DEL WIDGET ---
-}
+} // --- FIN DE LA CLASE _UserProfilePageState ---
 
-// --- WIDGET AÑADIDO (Copiado de principal_page.dart) ---
-// (Necesario para que _showCommentsModal funcione)
+// --- WIDGET _CommentsModalContent (Copiado de principal_page.dart) ---
 class _CommentsModalContent extends StatefulWidget {
   final String postId;
   final PostController postController;
@@ -1333,11 +1473,9 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                     .map((doc) => CommentModel.fromMap(doc))
                     .toList();
 
-                    
                 final topLevelComments = allComments
-                            .where((c) => c.parentCommentId == null)
-                            .toList();
-
+                    .where((c) => c.parentCommentId == null)
+                    .toList();
 
                 final replies = allComments
                     .where((c) => c.parentCommentId != null)
@@ -1357,7 +1495,6 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                   itemBuilder: (context, index) {
                     final comment = topLevelComments[index];
                     final commentReplies = repliesMap[comment.id] ?? [];
-
 
                     return _buildCommentTile(
                       comment,
@@ -1517,6 +1654,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
 
   Widget _buildCommentInputArea() {
     return Container(
+      // --- CORRECCIÓN: Eliminado el margin bottom, ya no es necesario ---
       padding: EdgeInsets.only(
         left: 16,
         right: 8,
@@ -1566,7 +1704,8 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send, color: Color.fromARGB(255, 156, 50, 50)),
+                icon: const Icon(Icons.send,
+                    color: Color.fromARGB(255, 156, 50, 50)),
                 onPressed: _sendComment,
               ),
             ],

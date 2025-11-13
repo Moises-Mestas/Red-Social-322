@@ -32,4 +32,5 @@ class AppConstants {
   static const String followersCollection = "followers";
   static const String followingCollection = "following";
   static const String notificationsCollection = "notifications";
+  static const String storiesCollection = "stories";
 }

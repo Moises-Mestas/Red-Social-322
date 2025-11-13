@@ -379,6 +379,54 @@ class DatabaseService {
         .doc(userId)
         .snapshots();
   }
+
+
+
+
+
+/// Sube la imagen de una historia a Storage
+  Future<String?> uploadStoryImage(File imageFile, String userId) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      String path = "stories/$userId/$fileName"; // Carpeta de historias por usuario
+
+      Reference storageReference = _storage.ref().child(path);
+      UploadTask uploadTask = storageReference.putFile(imageFile);
+      TaskSnapshot snapshot = await uploadTask;
+      String downloadUrl = await snapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      print("Error subiendo imagen de historia: $e");
+      return null;
+    }
+  }
+
+  /// Crea un nuevo documento de historia
+  Future<void> createStory(String userId, Map<String, dynamic> storyData) async {
+    // Creamos la historia en una subcolección del usuario
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .collection(AppConstants.storiesCollection)
+        .add(storyData);
+  }
+
+  /// Obtiene un stream de historias activas (que no hayan expirado)
+  Stream<QuerySnapshot> getActiveStoriesStream(String userId) {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .collection(AppConstants.storiesCollection)
+        .where('expiresAt', isGreaterThan: Timestamp.now()) // Filtra expiradas
+        .orderBy('expiresAt', descending: true) // Muestra la más nueva primero
+        .snapshots();
+  }
 }
+
+
+
+
+
+
 
 
