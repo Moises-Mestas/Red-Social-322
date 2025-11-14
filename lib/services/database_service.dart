@@ -430,4 +430,5 @@ class DatabaseService {
         .orderBy('expiresAt', descending: true) // Muestra la más nueva primero
         .snapshots();
   }
+
 } // <-- ¡EL CORCHETE DE CIERRE DE LA CLASE DEBE ESTAR AQUÍ!
