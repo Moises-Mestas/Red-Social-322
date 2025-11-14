@@ -6,14 +6,16 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter_application_3/controllers/chat_controller.dart';
 import 'package:flutter_application_3/controllers/group_controller.dart';
-import 'package:flutter_application_3/services/shared_pref_service.dart'; 
-import 'package:flutter_application_3/views/pages/user_profile_page.dart'; 
+import 'package:flutter_application_3/services/shared_pref_service.dart';
+import 'package:flutter_application_3/views/pages/user_profile_page.dart';
 
 // --- Imports para el grabador de audio ---
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+// --- AÑADIDO: Import para el reproductor (de Código 2) ---
+import 'package:audioplayers/audioplayers.dart';
 // -----------------------------------------------------------
 
 class GroupChatPage extends StatefulWidget {
@@ -35,14 +37,14 @@ class _GroupChatPageState extends State<GroupChatPage> {
   final GroupController _groupController = GroupController();
   final TextEditingController _messageController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  final SharedPrefService _sharedPrefService = SharedPrefService(); 
+  final SharedPrefService _sharedPrefService = SharedPrefService();
 
   Stream? _messageStream;
   String? _myUsername;
   String? _myPicture;
   File? _selectedImage;
   bool _isUserInGroup = false;
-  bool _isLoading = false; 
+  bool _isLoading = false;
 
   String? _replyToMessageId;
   String? _replyToMessageText;
@@ -54,21 +56,42 @@ class _GroupChatPageState extends State<GroupChatPage> {
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   // --------------------------
 
+  // --- AÑADIDO: Reproductor de Audio (de Código 2) ---
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _currentlyPlayingUrl; // Para saber qué audio se está reproduciendo
+  PlayerState? _playerState;
+  // ----------------------------------
+
   @override
   void initState() {
     super.initState();
     _initialize();
     _initializeAudio();
+
+    // --- AÑADIDO: Escuchar cambios de estado del reproductor (de Código 2) ---
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
+      if (mounted) {
+        setState(() {
+          _playerState = s;
+          // Si el audio termina, reseteamos el estado
+          if (s == PlayerState.completed || s == PlayerState.stopped) {
+            _currentlyPlayingUrl = null;
+          }
+        });
+      }
+    });
+    // ----------------------------------------------------
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _recorder.closeRecorder();
+    _audioPlayer.dispose(); // <-- AÑADIDO (de Código 2)
     super.dispose();
   }
-  
-  // --- MÉTODOS DE AUDIO ---
+
+  // --- MÉTODOS DE AUDIO (Grabar) ---
   Future<void> _initializeAudio() async {
     await _recorder.openRecorder();
     await _requestPermission();
@@ -99,12 +122,11 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Future<void> _uploadAudioFile() async {
     if (_filePath == null) return;
-    
+
     // Guardamos el ScaffoldMessenger ANTES del await
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    scaffoldMessenger.showSnackBar(
-      const SnackBar(content: Text("Subiendo nota de voz..."))
-    );
+    scaffoldMessenger
+        .showSnackBar(const SnackBar(content: Text("Subiendo nota de voz...")));
 
     try {
       File file = File(_filePath!);
@@ -124,12 +146,13 @@ class _GroupChatPageState extends State<GroupChatPage> {
       _cancelReply();
     } catch (e) {
       scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text("Error al subir audio: $e"), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text("Error al subir audio: $e"),
+            backgroundColor: Colors.red),
       );
     }
   }
 
-  // --- INICIO DE LA CORRECCIÓN: _openRecordingDialog ---
   Future<void> _openRecordingDialog() {
     // Usamos StatefulBuilder para que el modal pueda actualizar su propio estado
     return showDialog(
@@ -158,7 +181,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
                         children: [
                           Icon(Icons.mic, color: Colors.red),
                           SizedBox(width: 8),
-                          Text("Grabando...", style: TextStyle(color: Colors.red)),
+                          Text("Grabando...",
+                              style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     const SizedBox(height: 20.0),
@@ -171,7 +195,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                           await _startRecording();
                         }
                         // Actualizamos solo el modal
-                        modalSetState(() {}); 
+                        modalSetState(() {});
                       },
                       icon: Icon(_isRecording ? Icons.stop : Icons.mic),
                       label: Text(
@@ -185,15 +209,17 @@ class _GroupChatPageState extends State<GroupChatPage> {
                     const SizedBox(height: 20.0),
                     ElevatedButton(
                       // Solo habilitamos el botón si no se está grabando
-                      onPressed: _isRecording ? null : () async { 
-                        // Guardamos el Navigator ANTES del await
-                        final navigator = Navigator.of(context);
-                        
-                        await _uploadAudioFile(); 
-                        
-                        // Cerramos el modal DESPUÉS de subir
-                        navigator.pop();
-                      },
+                      onPressed: _isRecording
+                          ? null
+                          : () async {
+                              // Guardamos el Navigator ANTES del await
+                              final navigator = Navigator.of(context);
+
+                              await _uploadAudioFile();
+
+                              // Cerramos el modal DESPUÉS de subir
+                              navigator.pop();
+                            },
                       child: const Text(
                         'Subir Audio',
                         style: TextStyle(
@@ -209,9 +235,43 @@ class _GroupChatPageState extends State<GroupChatPage> {
       },
     );
   }
-  // --- FIN DE LA CORRECCIÓN ---
-  
-  // --- FIN MÉTODOS DE AUDIO ---
+  // --- FIN MÉTODOS DE AUDIO (Grabar) ---
+
+  // --- AÑADIDO: Lógica para REPRODUCIR audio (de Código 2) ---
+  Future<void> _playAudio(String url) async {
+    try {
+      if (_playerState == PlayerState.playing) {
+        // Si se está reproduciendo algo
+        if (_currentlyPlayingUrl == url) {
+          // Si es el MISMO audio, pausar
+          await _audioPlayer.pause();
+        } else {
+          // Si es un audio DIFERENTE, detener el anterior y reproducir el nuevo
+          await _audioPlayer.stop();
+          await _audioPlayer.play(UrlSource(url));
+          setState(() {
+            _currentlyPlayingUrl = url;
+          });
+        }
+      } else if (_playerState == PlayerState.paused &&
+          _currentlyPlayingUrl == url) {
+        // Si está pausado y es el mismo audio, reanudar
+        await _audioPlayer.resume();
+      } else {
+        // Si no se está reproduciendo nada, reproducir
+        await _audioPlayer.play(UrlSource(url));
+        setState(() {
+          _currentlyPlayingUrl = url;
+        });
+      }
+    } catch (e) {
+      print("Error al reproducir audio: $e");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Error al reproducir audio"),
+          backgroundColor: Colors.red));
+    }
+  }
+  // --- FIN DE LA LÓGICA ---
 
   Future<void> _initialize() async {
     await _getMyUsername();
@@ -267,7 +327,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
         replyToMessageSenderApodo: _replyToMessageSenderApodo,
       );
       _messageController.clear();
-      _cancelReply(); 
+      _cancelReply();
     }
   }
 
@@ -295,34 +355,38 @@ class _GroupChatPageState extends State<GroupChatPage> {
       replyToMessageText: _replyToMessageText,
       replyToMessageSenderApodo: _replyToMessageSenderApodo,
     );
-    _cancelReply(); 
+    _cancelReply();
   }
 
   Future<void> _joinGroup() async {
     if (_myUsername == null) return;
-    
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       await _groupController.joinGroup(widget.groupId);
-      
+
       if (mounted) {
-        await _checkIfUserIsInGroup(); 
+        await _checkIfUserIsInGroup();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("¡Te has unido al grupo!"), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text("¡Te has unido al grupo!"),
+              backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error al unirse: $e"), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text("Error al unirse: $e"),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
       if (mounted) {
-         setState(() {
+        setState(() {
           _isLoading = false;
         });
       }
@@ -339,7 +403,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     String? replyText,
     String? replySenderApodo,
   }) {
-    const double avatarRadius = 25; 
+    const double avatarRadius = 25;
     const double avatarPadding = 8;
     const double avatarTotalSpace = (avatarRadius * 2) + avatarPadding; // 58px
 
@@ -364,19 +428,37 @@ class _GroupChatPageState extends State<GroupChatPage> {
           },
         ),
       );
+      // --- INICIO DE LA MODIFICACIÓN: Contenido del mensaje de audio (de Código 2) ---
     } else if (type == "audio") {
+      bool isPlaying =
+          _playerState == PlayerState.playing && _currentlyPlayingUrl == message;
+      bool isPaused =
+          _playerState == PlayerState.paused && _currentlyPlayingUrl == message;
+
+      IconData playIcon = Icons.play_arrow;
+      if (isPlaying) {
+        playIcon = Icons.pause;
+      } else if (isPaused) {
+        playIcon = Icons.play_arrow;
+      }
+
       messageContent = Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.mic, color: Colors.white),
-          SizedBox(width: 8),
-          Text("Audio",
+        children: [
+          IconButton(
+            icon: Icon(playIcon, color: Colors.white, size: 30),
+            onPressed: () {
+              _playAudio(message); // 'message' contiene la URL del audio
+            },
+          ),
+          const Text("Nota de voz",
               style: TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                   fontSize: 16)),
         ],
       );
+      // --- FIN DE LA MODIFICACIÓN ---
     } else {
       messageContent = Text(
         message,
@@ -385,7 +467,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
       );
     }
 
-    // --- INICIO DE LA MODIFICACIÓN: Nuevo diseño de 'replyWidget' ---
+    // --- Widget de respuesta (sin cambios) ---
     Widget replyWidget = const SizedBox.shrink();
     if (replyText != null && replySenderApodo != null) {
       replyWidget = Padding(
@@ -428,10 +510,10 @@ class _GroupChatPageState extends State<GroupChatPage> {
         ),
       );
     }
-    // --- FIN DE LA MODIFICACIÓN ---
-    
+    // --- Fin del widget de respuesta ---
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4), 
+      padding: const EdgeInsets.symmetric(horizontal: 27, vertical: 4),
       child: Row(
         mainAxisAlignment:
             sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -453,7 +535,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               child: Padding(
                 padding: const EdgeInsets.only(right: avatarPadding),
                 child: CircleAvatar(
-                  radius: avatarRadius, 
+                  radius: avatarRadius,
                   backgroundImage: senderPicture.isNotEmpty
                       ? NetworkImage(senderPicture)
                       : null,
@@ -463,7 +545,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               ),
             )
           else
-            const SizedBox(width: avatarTotalSpace), 
+            const SizedBox(width: avatarTotalSpace),
 
           // COLUMNA DEL MENSAJE (Flexible)
           Flexible(
@@ -488,7 +570,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 // GLOBO DEL MENSAJE
                 Container(
                   decoration: BoxDecoration(
-                    color: sendByMe ? const Color.fromARGB(209, 134, 56, 42) : const Color(0xffD32323),
+                    color: sendByMe
+                        ? const Color.fromARGB(209, 134, 56, 42)
+                        : const Color(0xffD32323),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
                       bottomRight: sendByMe
@@ -517,9 +601,10 @@ class _GroupChatPageState extends State<GroupChatPage> {
                         replyWidget, // <-- Se muestra aquí
                         Padding(
                           // Padding condicional
-                          padding: (replyText != null && replySenderApodo != null) 
-                              ? const EdgeInsets.fromLTRB(12, 4, 12, 12)
-                              : const EdgeInsets.all(12),
+                          padding:
+                              (replyText != null && replySenderApodo != null)
+                                  ? const EdgeInsets.fromLTRB(12, 4, 12, 12)
+                                  : const EdgeInsets.all(12),
                           child: messageContent,
                         ),
                       ],
@@ -544,15 +629,11 @@ class _GroupChatPageState extends State<GroupChatPage> {
           ),
 
           // SPACER (Lado Derecho)
-          if (sendByMe)
-             const SizedBox.shrink()
-          else
-            const SizedBox(width: avatarTotalSpace),
+          if (sendByMe) const SizedBox.shrink() else const SizedBox(width: avatarTotalSpace),
         ],
       ),
     );
   }
-
 
   Widget _buildMessageList() {
     return StreamBuilder(
@@ -572,7 +653,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
           itemBuilder: (context, index) {
             DocumentSnapshot ds = snapshot.data.docs[index];
             bool sendByMe = _myUsername == ds['sendBy'];
-            
+
             String? replyText;
             String? replySender;
             try {
@@ -588,7 +669,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               direction: DismissDirection.startToEnd,
               confirmDismiss: (direction) async {
                 _startReply(ds.id, ds["message"], ds["sendBy"]);
-                return false; 
+                return false;
               },
               background: Container(
                 color: const Color(0xffD32323).withOpacity(0.1),
@@ -602,7 +683,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 dataType: ds["Data"],
                 timestamp: ds["ts"] ?? "",
                 senderApodo: ds["sendBy"],
-                senderPicture: ds["imgUrl"] ?? "", 
+                senderPicture: ds["imgUrl"] ?? "",
                 replyText: replyText,
                 replySenderApodo: replySender,
               ),
@@ -615,7 +696,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
 
   Widget _buildReplyBanner() {
     if (_replyToMessageId == null) {
-      return const SizedBox.shrink(); 
+      return const SizedBox.shrink();
     }
 
     return Container(
@@ -670,9 +751,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              textStyle: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold
-              ),
+              textStyle:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -764,7 +844,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
     );
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffD32323),
