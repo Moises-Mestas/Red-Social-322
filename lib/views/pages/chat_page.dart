@@ -50,7 +50,7 @@ class _ChatPageState extends State<ChatPage> {
   String? _filePath;
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
 
-  // --- AÑADIDO: Reproductor de Audio (de Código 2) ---
+  // --- AÑADIDO: Reproductor de Audio ---
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentlyPlayingUrl; // Para saber qué audio se está reproduciendo
   PlayerState? _playerState;
@@ -60,9 +60,9 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _initialize();
-    _loadUserData();
+    _loadUserData(); // <-- Esta función ahora reseteará el contador
 
-    // --- AÑADIDO: Escuchar cambios de estado del reproductor (de Código 2) ---
+    // --- Escuchar cambios de estado del reproductor ---
     _audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
       if (mounted) {
         setState(() {
@@ -77,13 +77,15 @@ class _ChatPageState extends State<ChatPage> {
     // ----------------------------------------------------
   }
 
+  // --- MODIFICADO: dispose (de Código 2) ---
   @override
   void dispose() {
     _recorder.closeRecorder();
-    _audioPlayer.dispose(); // <-- AÑADIDO (de Código 2)
+    _audioPlayer.dispose(); // <-- AÑADIDO
     _messageController.dispose();
     super.dispose();
   }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   Future<void> _initialize() async {
     await _recorder.openRecorder();
@@ -92,14 +94,13 @@ class _ChatPageState extends State<ChatPage> {
     _filePath = '${tempDir.path}/audio.aac';
   }
 
-  // --- MODIFICADO: _requestPermission (de Código 2) ---
   Future<void> _requestPermission() async {
     // Pedimos permiso de micrófono Y almacenamiento
     await Permission.microphone.request();
     await Permission.storage.request();
   }
-  // --- FIN DE LA MODIFICACIÓN ---
 
+  // --- MODIFICADO: _loadUserData (de Código 2) ---
   Future<void> _loadUserData() async {
     final userData = await _sharedPrefService.getAllUserData();
     setState(() {
@@ -111,9 +112,19 @@ class _ChatPageState extends State<ChatPage> {
 
     if (_myUsername != null) {
       _chatRoomId = await _chatController.getOrCreateChatRoom(widget.username);
+
+      // --- INICIO DE LA MODIFICACIÓN ---
+      // Una vez que tenemos el chatRoomId y nuestro username,
+      // le decimos a la BD que ya hemos leído este chat.
+      if (_chatRoomId != null) {
+        await _chatController.resetUnreadCount(_chatRoomId!, _myUsername!);
+      }
+      // --- FIN DE LA MODIFICACIÓN ---
+
       _getAndSetMessages();
     }
   }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   Future<void> _getAndSetMessages() async {
     if (_chatRoomId != null) {
@@ -235,7 +246,7 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // --- AÑADIDO: Lógica para reproducir audio (de Código 2) ---
+  // --- Lógica para reproducir audio ---
   Future<void> _playAudio(String url) async {
     try {
       if (_playerState == PlayerState.playing) {
@@ -303,7 +314,6 @@ class _ChatPageState extends State<ChatPage> {
           },
         ),
       );
-      // --- INICIO DE LA MODIFICACIÓN: Contenido del mensaje de audio (de Código 2) ---
     } else if (type == "audio") {
       // Determinamos qué icono mostrar
       bool isPlaying =
@@ -328,7 +338,6 @@ class _ChatPageState extends State<ChatPage> {
               _playAudio(message); // 'message' contiene la URL del audio
             },
           ),
-          // TODO: Podrías añadir un Slider de progreso aquí
           const Text("Nota de voz",
               style: TextStyle(
                   color: Colors.white,
@@ -336,7 +345,6 @@ class _ChatPageState extends State<ChatPage> {
                   fontSize: 16)),
         ],
       );
-      // --- FIN DE LA MODIFICACIÓN ---
     } else {
       messageContent = Text(
         message,
@@ -345,22 +353,19 @@ class _ChatPageState extends State<ChatPage> {
       );
     }
 
-    // --- Widget de respuesta (ya estaba en Código 1) ---
+    // --- Widget de respuesta ---
     Widget replyWidget = const SizedBox.shrink();
     if (replyText != null && replySenderApodo != null) {
       replyWidget = Padding(
-        // 1. Padding para separarlo del borde de la burbuja
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            // 2. Color de fondo semi-transparente
             color: Colors.black.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
-            // 3. Barra lateral distintiva
             border: Border(
               left: BorderSide(
-                color: Colors.white.withOpacity(0.7), // Color de la barra
+                color: Colors.white.withOpacity(0.7),
                 width: 4,
               ),
             ),
@@ -368,7 +373,6 @@ class _ChatPageState extends State<ChatPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 4. Nombre del remitente original (en negrita)
               Text(
                 replySenderApodo,
                 style: const TextStyle(
@@ -378,7 +382,6 @@ class _ChatPageState extends State<ChatPage> {
                 ),
               ),
               const SizedBox(height: 4),
-              // 5. Texto del mensaje original (con elipsis)
               Text(
                 replyText,
                 maxLines: 2,
@@ -454,7 +457,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
 
-                // --- Estructura del globo (ya estaba en Código 1) ---
+                // --- Estructura del globo ---
                 Container(
                   decoration: BoxDecoration(
                     color: sendByMe
@@ -471,8 +474,6 @@ class _ChatPageState extends State<ChatPage> {
                           : const Radius.circular(0),
                     ),
                   ),
-                  // Usamos ClipRRect para que el color de fondo de la respuesta
-                  // respete los bordes redondeados de la burbuja
                   child: ClipRRect(
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(30),
@@ -487,17 +488,15 @@ class _ChatPageState extends State<ChatPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 1. El widget de respuesta (se mostrará si no es nulo)
+                        // 1. El widget de respuesta
                         replyWidget,
 
                         // 2. El contenido del mensaje principal
                         Padding(
-                          // Ajustamos el padding si hay respuesta o no
-                          padding: (replyText != null && replySenderApodo != null)
-                              ? const EdgeInsets.fromLTRB(
-                                  12, 4, 12, 12) // Menos padding superior
-                              : const EdgeInsets.all(
-                                  12), // Padding normal
+                          padding:
+                              (replyText != null && replySenderApodo != null)
+                                  ? const EdgeInsets.fromLTRB(12, 4, 12, 12)
+                                  : const EdgeInsets.all(12),
                           child: messageContent,
                         ),
                       ],
@@ -566,7 +565,6 @@ class _ChatPageState extends State<ChatPage> {
                 return false;
               },
               background: Container(
-                // Color de fondo al deslizar (ahora usa tu color rojo)
                 color: const Color(0xffD32323).withOpacity(0.1),
                 padding: const EdgeInsets.only(left: 28),
                 alignment: Alignment.centerLeft,
@@ -618,7 +616,8 @@ class _ChatPageState extends State<ChatPage> {
                         children: [
                           Icon(Icons.mic, color: Colors.red),
                           SizedBox(width: 8),
-                          Text("Grabando...", style: TextStyle(color: Colors.red)),
+                          Text("Grabando...",
+                              style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     const SizedBox(height: 20.0),

@@ -1,3 +1,4 @@
+// lib/views/widgets/chat_room_list_tile.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/services/database_service.dart';
@@ -8,6 +9,7 @@ class ChatRoomListTile extends StatefulWidget {
   final String lastMessage;
   final String myUsername;
   final String time;
+  final int unreadCount;
 
   const ChatRoomListTile({
     super.key,
@@ -15,6 +17,7 @@ class ChatRoomListTile extends StatefulWidget {
     required this.lastMessage,
     required this.myUsername,
     required this.time,
+    this.unreadCount = 0,
   });
 
   @override
@@ -27,8 +30,8 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
   String profilePicUrl = "";
   String name = "";
   String username = "";
-  String? otherUserId; // <-- Cambiado a 'otherUserId' para más claridad
-  Stream<DocumentSnapshot>? _userStream; // <-- Añadido de nuevo
+  String? otherUserId;
+  Stream<DocumentSnapshot>? _userStream;
 
   @override
   void initState() {
@@ -36,7 +39,6 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
     _getUserInfo();
   }
 
-  // --- CORRECCIÓN: El método debe ser Future<void> por ser async ---
   Future<void> _getUserInfo() async {
     username = widget.chatRoomId
         .replaceAll("_", "")
@@ -46,13 +48,13 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
 
     if (mounted && querySnapshot.docs.isNotEmpty) {
       // Obtenemos el ID del documento del usuario
-      otherUserId = querySnapshot.docs[0].id; 
-      
+      otherUserId = querySnapshot.docs[0].id;
+
       setState(() {
         name = querySnapshot.docs[0]["Name"];
         profilePicUrl = querySnapshot.docs[0]["Image"];
       });
-      
+
       // Si obtuvimos el ID, nos suscribimos a su stream
       if (otherUserId != null) {
         _userStream = _databaseService.getUserStream(otherUserId!);
@@ -63,6 +65,14 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
 
   @override
   Widget build(BuildContext context) {
+    // --- LÓGICA DE ESTILO PARA NO LEÍDOS ---
+    bool hasUnread = widget.unreadCount > 0;
+    FontWeight lastMessageWeight =
+        hasUnread ? FontWeight.bold : FontWeight.w400;
+    Color lastMessageColor =
+        hasUnread ? Colors.black : const Color.fromARGB(151, 0, 0, 0);
+    // --- FIN ---
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -70,7 +80,8 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
           MaterialPageRoute(
             builder: (context) => ChatPage(
               name: name,
-              profileurl: profilePicUrl, // Asegúrate que chat_page reciba 'profileurl'
+              profileurl:
+                  profilePicUrl, // Asegúrate que chat_page reciba 'profileurl'
               username: username,
             ),
           ),
@@ -89,10 +100,10 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
             ),
             width: MediaQuery.of(context).size.width,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center, // <-- Centrado verticalmente
+              crossAxisAlignment:
+                  CrossAxisAlignment.center, // <-- Centrado verticalmente
               children: [
-                
-                // --- INICIO DE LA CORRECCIÓN (StreamBuilder para foto y estado online) ---
+                // --- StreamBuilder para foto y estado online ---
                 SizedBox(
                   width: 70, // Ancho fijo
                   height: 70, // Alto fijo
@@ -100,12 +111,16 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                     stream: _userStream, // Escucha el estado del usuario
                     builder: (context, snapshot) {
                       bool isOnline = false;
-                      String? imageFromStream = profilePicUrl; // Foto por defecto
+                      String? imageFromStream =
+                          profilePicUrl; // Foto por defecto
 
                       if (snapshot.hasData && snapshot.data!.exists) {
                         var data = snapshot.data!.data() as Map<String, dynamic>;
-                        isOnline = data.containsKey('isOnline') ? data['isOnline'] : false;
-                        imageFromStream = data.containsKey('Image') ? data['Image'] : profilePicUrl;
+                        isOnline =
+                            data.containsKey('isOnline') ? data['isOnline'] : false;
+                        imageFromStream = data.containsKey('Image')
+                            ? data['Image']
+                            : profilePicUrl;
                       }
 
                       return Stack(
@@ -114,11 +129,14 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                           CircleAvatar(
                             radius: 35, // 70 / 2
                             backgroundColor: Colors.grey[200],
-                            backgroundImage: (imageFromStream != null && imageFromStream!.isNotEmpty)
+                            backgroundImage: (imageFromStream != null &&
+                                    imageFromStream!.isNotEmpty)
                                 ? NetworkImage(imageFromStream!)
                                 : null,
-                            child: (imageFromStream == null || imageFromStream!.isEmpty)
-                                ? const Icon(Icons.person, color: Colors.grey, size: 35)
+                            child: (imageFromStream == null ||
+                                    imageFromStream!.isEmpty)
+                                ? const Icon(Icons.person,
+                                    color: Colors.grey, size: 35)
                                 : null,
                           ),
                           if (isOnline)
@@ -131,7 +149,8 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                                 decoration: BoxDecoration(
                                   color: Colors.green,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                 ),
                               ),
                             ),
@@ -140,7 +159,7 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                     },
                   ),
                 ),
-                // --- FIN DE LA CORRECCIÓN ---
+                // --- FIN DEL StreamBuilder ---
 
                 const SizedBox(width: 10.0),
                 Expanded(
@@ -148,7 +167,6 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // const SizedBox(height: 10.0), // Ya no es necesario con crossAxisAlignment.center
                       Text(
                         name.isNotEmpty ? name : "...",
                         style: const TextStyle(
@@ -160,10 +178,10 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                       const SizedBox(height: 5.0),
                       Text(
                         widget.lastMessage,
-                        style: const TextStyle(
-                          color: Color.fromARGB(151, 0, 0, 0),
+                        style: TextStyle(
+                          color: lastMessageColor,
                           fontSize: 16.0,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: lastMessageWeight,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
@@ -172,13 +190,47 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                   ),
                 ),
                 const SizedBox(width: 10.0),
-                Text(
-                  widget.time,
-                  style: const TextStyle(
-                    color: Colors.black45,
-                    fontSize: 12.0,
-                  ),
-                ),
+
+                // --- INICIO: Columna de Hora y Contador (MODIFICADA) ---
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.time,
+                      style: const TextStyle(
+                        color: Colors.black45,
+                        fontSize: 12.0,
+                      ),
+                    ),
+                    // Si hay mensajes no leídos, muestra la burbuja
+                    if (hasUnread) ...[
+                      const SizedBox(height: 8.0),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffD32323), // Tu color rojo
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          widget.unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      // --- INICIO DE LA MODIFICACIÓN (de Código 2) ---
+                      // Añadimos un Sizedbox para que la hora se alinee
+                      // incluso si no hay contador
+                      const SizedBox(height: 26), // Alto aprox de la burbuja
+                      // --- FIN DE LA MODIFICACIÓN ---
+                    ]
+                  ],
+                )
+                // --- FIN ---
               ],
             ),
           ),

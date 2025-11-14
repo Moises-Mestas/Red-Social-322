@@ -1,3 +1,4 @@
+// lib/views/pages/home_page.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_3/controllers/chat_controller.dart';
@@ -177,6 +178,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // --- WIDGET MODIFICADO (de Código 2) ---
   Widget _chatRoomList() {
     return StreamBuilder(
       stream: chatRoomsStream,
@@ -196,17 +198,34 @@ class _HomePageState extends State<HomePage> {
           itemBuilder: (context, index) {
             DocumentSnapshot ds = snapshot.data.docs[index];
 
-          return ChatRoomListTile(
+            // --- INICIO DE LA MODIFICACIÓN ---
+            // Leemos el contador de no leídos de este chat PARA MÍ
+            int unreadCount = 0;
+            // myUsername no puede ser nulo aquí, ya que chatRoomsStream no se cargaría
+            String myUnreadField = "unreadCount_$myUsername";
+
+            try {
+              // Intentamos leer el campo
+              unreadCount = ds[myUnreadField] ?? 0;
+            } catch (e) {
+              // Si el campo no existe (ej. en chats viejos), es 0
+              unreadCount = 0;
+            }
+            // --- FIN DE LA MODIFICACIÓN ---
+
+            return ChatRoomListTile(
               chatRoomId: ds.id,
               lastMessage: ds["lastMessage"] ?? "",
               myUsername: myUsername!,
               time: ds["lastMessageSendTs"]?.toString() ?? "",
+              unreadCount: unreadCount, // <-- Pasamos el contador al widget
             );
           },
         );
       },
     );
   }
+  // --- FIN DE LA MODIFICACIÓN ---
 
   Widget _buildResultCard(Map<String, dynamic> data, BuildContext context) {
     return GestureDetector(
@@ -305,10 +324,9 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
-                // --- INICIO DE LA MODIFICACIÓN ---
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 10.0),
                   child: Row(
                     children: [
                       // 1. Foto de Perfil (con borde blanco)
@@ -318,16 +336,18 @@ class _HomePageState extends State<HomePage> {
                         child: CircleAvatar(
                           radius: 28, // Radio interior (imagen)
                           backgroundColor: Colors.white.withOpacity(0.3),
-                          backgroundImage: (myPicture != null && myPicture!.isNotEmpty)
-                              ? NetworkImage(myPicture!)
-                              : null,
+                          backgroundImage:
+                              (myPicture != null && myPicture!.isNotEmpty)
+                                  ? NetworkImage(myPicture!)
+                                  : null,
                           child: (myPicture == null || myPicture!.isEmpty)
-                              ? const Icon(Icons.person, size: 28, color: Colors.white)
+                              ? const Icon(Icons.person,
+                                  size: 28, color: Colors.white)
                               : null,
                         ),
                       ),
                       const SizedBox(width: 15.0),
-                      
+
                       // 2. Texto de Saludo
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,9 +373,8 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                // --- FIN DE LA MODIFICACIÓN ---
 
-                const SizedBox(height: 20.0), 
+                const SizedBox(height: 20.0),
 
                 // PRINCIPAL CONTAINER
                 Expanded(
@@ -386,7 +405,7 @@ class _HomePageState extends State<HomePage> {
                                 child: TextField(
                                   controller: _searchController,
                                   onChanged: (value) {
-                                    _initializeSearch(value); 
+                                    _initializeSearch(value);
                                   },
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
@@ -396,7 +415,6 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               const SizedBox(height: 20.0),
-                              
                               const Text(
                                 "Mensajes",
                                 style: TextStyle(
@@ -417,7 +435,8 @@ class _HomePageState extends State<HomePage> {
                                         itemCount: _filteredChatPartners.length,
                                         itemBuilder: (context, index) {
                                           return _buildResultCard(
-                                              _filteredChatPartners[index], context);
+                                              _filteredChatPartners[index],
+                                              context);
                                         },
                                       )
                                     : _chatRoomList(),
@@ -431,10 +450,8 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 156, 50, 50)
-,
+        backgroundColor: const Color.fromARGB(255, 156, 50, 50),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.5),

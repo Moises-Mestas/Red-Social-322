@@ -160,6 +160,21 @@ class DatabaseService {
         .update(lastMessageInfoMap);
   }
 
+  Future<void> resetUnreadCount(String chatRoomId, String myUsername) async {
+    // El campo se llamará 'unreadCount_MIUSERNAME'
+    String myUnreadField = "unreadCount_$myUsername";
+    
+    await _firestore
+        .collection(AppConstants.chatroomsCollection)
+        .doc(chatRoomId)
+        .set({
+          myUnreadField: 0, // Resetea el contador
+        }, SetOptions(merge: true)); // Usa merge para no borrar otros campos
+  }
+
+
+
+  
   Stream<QuerySnapshot> getChatRoomMessages(String chatRoomId) {
     return _firestore
         .collection(AppConstants.chatroomsCollection)
