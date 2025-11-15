@@ -1079,6 +1079,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
 
   Widget _buildCommentInputArea() {
     return Container(
+      margin: const EdgeInsets.only(bottom: 60.0), // <-- Sube la barra 24px
       padding: EdgeInsets.only(
         left: 16,
         right: 8,
@@ -1129,7 +1130,7 @@ class _CommentsModalContentState extends State<_CommentsModalContent> {
               ),
               IconButton(
                 icon: const Icon(Icons.send,
-                    color: Color.fromARGB(255, 79, 191, 219)),
+                    color: Color(0xffD32323)),
                 onPressed: _sendComment,
               ),
             ],
